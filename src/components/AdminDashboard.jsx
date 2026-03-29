@@ -140,34 +140,49 @@ const AdminDashboard = () => {
      if (!trm || quoteItems.length === 0 || quoteItems.some(i => !i.precioCompraUsd)) return null;
      
      const items = quoteItems.map(item => {
-        const cat = categories.find(c => c.id === item.categoria_id) || { fixed_shipping_usd: 20, margin: 0.15 };
-        const baseCompraCop = Number(item.precioCompraUsd) * (trm.valor + 200);
-        const logisticaCop = cat.fixed_shipping_usd * (trm.valor + 200);
-        const totalCostCop = baseCompraCop + logisticaCop;
-        const precioSugerido = totalCostCop / (1 - (cat.margin || 0.15));
+        const cat = categories.find(c => String(c.id) === String(item.categoria_id)) || { fixed_shipping_usd: 16 };
+        
+        // FORMULA EXCEL: (Compra + 16 + (Peso * CargoLb)) * TRM_GOAT * MargenCat
+        const cargoLibra = Number(cat.cargo_libra_usd || 2.5);
+        const profitMargin = Number(cat.margen_base || 0.15);
+        
+        const trmUsed = Number(trm.valor) + 200;
+        const weightFeeUsd = Number(item.pesoLibras || 0) * cargoLibra;
+
+        const baseCompraCop = Number(item.precioCompraUsd || 0) * trmUsed;
+        const logisticaCop = Number(cat.fixed_shipping_usd || 16) * trmUsed;
+        const pesoCop = weightFeeUsd * trmUsed; 
+        
+        const totalCostCop = baseCompraCop + logisticaCop + pesoCop;
+        const precioSugerido = totalCostCop * (1 + profitMargin);
+        const profitCop = precioSugerido - totalCostCop;
         
         return {
            id: item.id,
            precioSugerido,
-           profit_usd: (precioSugerido - totalCostCop) / (trm.valor + 200),
+           profit_usd: profitCop / trmUsed,
+           profit_cop: profitCop,
            total_cost_cop: totalCostCop,
-           margin_percent: (cat.margin || 0.15) * 100,
-           fixed_usd: cat.fixed_shipping_usd,
-           weight_usd: Number(item.pesoLibras) * 2.5
+           margin_percent: profitMargin * 100,
+           fixed_usd: Number(cat.fixed_shipping_usd || 16),
+           weight_usd: weightFeeUsd
         };
      });
 
      const total_cop = items.reduce((acc, i) => acc + i.precioSugerido, 0);
-     const total_profit = items.reduce((acc, i) => acc + i.profit_usd, 0);
+     const total_profit_usd = items.reduce((acc, i) => acc + i.profit_usd, 0);
+     const total_profit_cop = items.reduce((acc, i) => acc + i.profit_cop, 0);
      const avg_margin = items.reduce((acc, i) => acc + i.margin_percent, 0) / items.length;
 
      return {
         items,
         totales: {
            total_cop,
-           profit_usd: total_profit.toFixed(2),
+           profit_usd: total_profit_usd.toFixed(2),
+           profit_cop: total_profit_cop,
            avg_margin: avg_margin.toFixed(0) + '%',
-           total_fixed_usd: items.reduce((acc, i) => acc + i.fixed_usd, 0)
+           total_fixed_usd: items.reduce((acc, i) => acc + i.fixed_usd, 0),
+           weight_fees_usd: items.reduce((acc, i) => acc + i.weight_usd, 0).toFixed(2)
         }
      };
   }, [quoteItems, trm, categories]);
@@ -226,7 +241,7 @@ const AdminDashboard = () => {
         await orderService.createBatch({
            items: quoteItems,
            cliente: quoterCustomer,
-           trm_used: trm.valor + 200
+           trm_used: trm.valor + 200 
         });
         showNotification('success', '¡Pedido registrado con éxito!');
         setIsQuoterFinishModalOpen(false);
@@ -639,18 +654,18 @@ const AdminDashboard = () => {
                           <div className="flex flex-col gap-0.5">
                              <span className="text-[7px] font-black uppercase tracking-[0.4em] text-black/30">Total Cliente</span>
                              <div className="flex flex-col">
-                                <h2 className="text-2xl xl:text-3xl font-hype font-black italic tracking-tighter text-black leading-none">${new Intl.NumberFormat('es-CO').format(totalQuotedCop)}</h2>
+                                <h2 className="text-2xl xl:text-3xl font-hype font-black italic tracking-tighter text-black leading-none">${new Intl.NumberFormat('es-CO').format(quoterPriceInfo.totales.total_cop)}</h2>
                                 <span className="text-[9px] font-black text-black/20 italic mt-1 self-end">COP</span>
                              </div>
                           </div>
                           <div className="grid grid-cols-2 gap-4 pt-6 border-t border-black/5">
                              <div>
                                 <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 50%</p>
-                                <p className="text-base font-hype font-black italic text-goat-red tracking-tighter">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.5) / 1000) * 1000)}</p>
+                                <p className="text-base font-hype font-black italic text-goat-red tracking-tighter">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((quoterPriceInfo.totales.total_cop * 0.5) / 1000) * 1000)}</p>
                              </div>
                              <div className="text-right border-l border-black/5 pl-3">
                                 <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 30%</p>
-                                <p className="text-[13px] font-black text-black tracking-tighter leading-none">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.3) / 1000) * 1000)}</p>
+                                <p className="text-[13px] font-black text-black tracking-tighter leading-none">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((quoterPriceInfo.totales.total_cop * 0.3) / 1000) * 1000)}</p>
                              </div>
                           </div>
                        </div>
@@ -659,7 +674,7 @@ const AdminDashboard = () => {
                     <div className="flex flex-col gap-4 mb-8">
                        <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
                           <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Dólar @GOAT</p>
-                          <p className="text-lg font-black text-white italic tracking-tighter">$ {new Intl.NumberFormat('es-CO').format(trm.valor + 200)}</p>
+                          <p className="text-lg font-black text-white italic tracking-tighter shadow-sm shadow-goat-red/10">$ {new Intl.NumberFormat('es-CO').format(trm.valor + 200)}</p>
                        </div>
                        
                        <div className="bg-black/40 border border-white/5 rounded-2xl p-4 space-y-3">
@@ -667,9 +682,12 @@ const AdminDashboard = () => {
                              <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Rentabilidad</p>
                              <div className="bg-green-500/10 text-green-500 text-[7px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">Calculando...</div>
                           </div>
-                          <div className="flex justify-between items-end">
-                             <p className="text-[10px] text-white/40 font-bold uppercase leading-none">Utilidad Est. USD</p>
-                             <p className="text-xl font-hype font-black italic text-green-500 leading-none">${quoterPriceInfo?.totales?.profit_usd || '0.00'}</p>
+                          <div className="flex flex-col gap-1 items-end">
+                             <p className="text-[10px] text-white/40 font-bold uppercase leading-none">Utilidad Est.</p>
+                             <div className="flex flex-col items-end gap-1">
+                                <p className="text-xl font-hype font-black italic text-green-500 leading-none">$ {new Intl.NumberFormat('es-CO').format(quoterPriceInfo?.totales?.profit_cop || 0)} COP</p>
+                                <p className="text-[10px] font-mono text-white/20 italic tracking-tighter">(+ {quoterPriceInfo?.totales?.profit_usd || '0.00'} USD)</p>
+                             </div>
                           </div>
                        </div>
                     </div>
@@ -681,6 +699,10 @@ const AdminDashboard = () => {
                               <div className="flex justify-between items-center text-[10px] font-mono">
                                  <span className="text-white/30">Envío Fijo:</span>
                                  <span className="text-white/60">${quoterPriceInfo.totales?.total_fixed_usd} USD</span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] font-mono">
+                                 <span className="text-white/30">Carga x Peso:</span>
+                                 <span className="text-white/60">${quoterPriceInfo.totales?.weight_fees_usd} USD</span>
                               </div>
                            </div>
                            <div className="space-y-2.5">
