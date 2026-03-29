@@ -59,6 +59,10 @@ export const orderService = {
     const response = await api.post('/orders', orderData);
     return response.data;
   },
+  createBatch: async (batchData) => {
+    const response = await api.post('/orders/batch', batchData);
+    return response.data;
+  },
   updateStatus: async (id, statusData) => {
     const response = await api.patch(`/orders/${id}`, statusData);
     return response.data;
