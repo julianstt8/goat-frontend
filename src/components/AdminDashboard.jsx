@@ -634,6 +634,28 @@ const AdminDashboard = () => {
                        <div className="text-[9px] font-black text-white px-3 py-1 bg-white/5 rounded-full border border-white/5 italic">OPERATIVO</div>
                     </div>
 
+                    {quoterPriceInfo && (
+                       <div className="bg-white rounded-[2rem] p-5 space-y-4 shadow-2xl mb-8 animate-slide-up">
+                          <div className="flex flex-col gap-0.5">
+                             <span className="text-[7px] font-black uppercase tracking-[0.4em] text-black/30">Total Cliente</span>
+                             <div className="flex flex-col">
+                                <h2 className="text-2xl xl:text-3xl font-hype font-black italic tracking-tighter text-black leading-none">${new Intl.NumberFormat('es-CO').format(totalQuotedCop)}</h2>
+                                <span className="text-[9px] font-black text-black/20 italic mt-1 self-end">COP</span>
+                             </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 pt-6 border-t border-black/5">
+                             <div>
+                                <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 50%</p>
+                                <p className="text-base font-hype font-black italic text-goat-red tracking-tighter">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.5) / 1000) * 1000)}</p>
+                             </div>
+                             <div className="text-right border-l border-black/5 pl-3">
+                                <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 30%</p>
+                                <p className="text-[13px] font-black text-black tracking-tighter leading-none">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.3) / 1000) * 1000)}</p>
+                             </div>
+                          </div>
+                       </div>
+                    )}
+
                     <div className="flex flex-col gap-4 mb-8">
                        <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
                           <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Dólar @GOAT</p>
@@ -653,8 +675,7 @@ const AdminDashboard = () => {
                     </div>
 
                     {quoterPriceInfo && (
-                       <>
-                        <div className="flex flex-col gap-4 mb-8 border-t border-white/5 pt-6">
+                        <div className="flex flex-col gap-4 mb-10 border-t border-white/5 pt-8">
                            <div className="space-y-2.5">
                               <p className="text-[7px] font-black text-white/20 uppercase tracking-widest mb-3 border-l-2 border-goat-red pl-2 italic">Logística</p>
                               <div className="flex justify-between items-center text-[10px] font-mono">
@@ -674,26 +695,6 @@ const AdminDashboard = () => {
                               </div>
                            </div>
                         </div>
-                        <div className="bg-white rounded-[2rem] p-5 space-y-4 shadow-2xl">
-                           <div className="flex flex-col gap-0.5">
-                              <span className="text-[7px] font-black uppercase tracking-[0.4em] text-black/30">Total Cliente</span>
-                              <div className="flex flex-col">
-                                 <h2 className="text-2xl xl:text-3xl font-hype font-black italic tracking-tighter text-black leading-none">${new Intl.NumberFormat('es-CO').format(totalQuotedCop)}</h2>
-                                 <span className="text-[9px] font-black text-black/20 italic mt-1 self-end">COP</span>
-                              </div>
-                           </div>
-                           <div className="grid grid-cols-2 gap-4 pt-6 border-t border-black/5">
-                              <div>
-                                 <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 50%</p>
-                                 <p className="text-base font-hype font-black italic text-goat-red tracking-tighter">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.5) / 1000) * 1000)}</p>
-                              </div>
-                              <div className="text-right border-l border-black/5 pl-3">
-                                 <p className="text-[7px] font-black text-black/30 uppercase mb-1">Abono 30%</p>
-                                 <p className="text-[13px] font-black text-black tracking-tighter leading-none">$ {new Intl.NumberFormat('es-CO').format(Math.ceil((totalQuotedCop * 0.3) / 1000) * 1000)}</p>
-                              </div>
-                           </div>
-                        </div>
-                       </>
                     )}
 
                     <button onClick={handleFinishQuote} className="w-full mt-8 h-16 bg-goat-red text-white text-[11px] font-black uppercase italic tracking-widest rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-goat-red/30">
