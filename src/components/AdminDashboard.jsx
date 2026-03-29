@@ -250,7 +250,7 @@ const AdminDashboard = () => {
         id: Date.now(),
         referencia: '',
         precioCompraUsd: '',
-        pesoLibras: 1.0,
+        pesoLibras: 2.0,
         categoria_id: ''
      }]);
   };
@@ -343,7 +343,7 @@ const AdminDashboard = () => {
           categoria_id: item.categoria_id,
           talla: item.talla || 'N/A',
           precio_compra_usd: Number(item.precioCompraUsd || 0),
-          peso_libras: Number(item.pesoLibras || 1),
+          peso_libras: Number(item.pesoLibras || 2.0),
           precio_venta_cop: calc?.precio_final_cop || 0,
           trm_utilizada: trm?.valor || 0,
           costo_total_usd: Number(item.precioCompraUsd || 0),
@@ -574,7 +574,7 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 text-right">
                                <Tooltip text={`COSTO DE COMPRA: $${item.precioCompraUsd} USD`}>
                                  <div className="flex items-center justify-end gap-1">
-                                    <span className="text-goat-red opacity-30">$</span>
+                                     <span className="text-goat-red opacity-40 font-black text-sm">$</span>
                                     <input 
                                       type="number" 
                                       value={item.precioCompraUsd}
@@ -601,11 +601,11 @@ const AdminDashboard = () => {
                                  <select 
                                    value={item.categoria_id}
                                    onChange={(e) => updateQuoteItem(item.id, 'categoria_id', e.target.value)}
-                                   className="bg-transparent border-none outline-none text-white/40 appearance-none cursor-pointer hover:text-white transition-colors"
+                                   className="bg-white/5 border border-white/5 rounded-lg px-3 py-1.5 text-[9px] font-black text-white/60 outline-none hover:border-white/10 transition-all cursor-pointer focus:border-goat-red/30"
                                  >
-                                   <option value="">GENERAL</option>
+                                   <option value="" className="bg-goat-black text-white">GENERAL</option>
                                    {categories.map(c => (
-                                     <option key={c.id} value={c.id}>{c.nombre.toUpperCase()}</option>
+                                     <option key={c.id} value={c.id} className="bg-goat-black text-white">{c.nombre.toUpperCase()}</option>
                                    ))}
                                  </select>
                                </Tooltip>
@@ -989,7 +989,7 @@ const AdminDashboard = () => {
                         <div className="space-y-1.5">
                            <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Monto Abono (COP)</label>
                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-goat-red font-bold text-xs">$</span>
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-goat-red font-black text-base">$</span>
                               <input 
                                 type="number"
                                 value={paymentAmount}
