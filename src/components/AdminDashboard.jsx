@@ -316,6 +316,8 @@ const AdminDashboard = () => {
     let filtered = items.filter(item => {
        const searchStr = searchTerm.toLowerCase();
        const matchesSearch = 
+          String(item.id || '').toLowerCase().includes(searchStr) ||
+          String(item.pedido_id || '').toLowerCase().includes(searchStr) ||
           (item.referencia || '').toLowerCase().includes(searchStr) ||
           (item.producto?.referencia || '').toLowerCase().includes(searchStr) ||
           (item.cliente?.nombre_completo || '').toLowerCase().includes(searchStr);

@@ -202,16 +202,28 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
 
               {/* STATS CARD */}
               <div className="space-y-6">
-                 <div className="bg-goat-blue/5 border border-goat-blue/10 rounded-[40px] p-8">
-                    <div className="flex items-center gap-4 mb-6">
-                       <div className="w-12 h-12 bg-goat-blue/10 rounded-2xl flex items-center justify-center text-goat-blue">
-                          <CreditCard size={20} />
-                       </div>
-                       <h4 className="text-sm font-black italic text-white uppercase tracking-tighter">Inversión en Hype</h4>
-                    </div>
-                    <div className="text-3xl font-black italic text-white mb-2">$ {new Intl.NumberFormat('es-CO').format(orders.reduce((acc, o) => acc + (Number(o.precio_venta_cop) || 0), 0))}</div>
-                    <p className="text-white/30 font-mono text-[9px] uppercase tracking-widest">Total invertido en tus colecciones de GOAT.</p>
-                 </div>
+                  <div className="bg-goat-blue/5 border border-goat-blue/10 rounded-[40px] p-8 flex flex-col md:flex-row justify-between gap-6">
+                     <div>
+                        <div className="flex items-center gap-4 mb-6">
+                           <div className="w-12 h-12 bg-goat-blue/10 rounded-2xl flex items-center justify-center text-goat-blue">
+                              <CreditCard size={20} />
+                           </div>
+                           <h4 className="text-sm font-black italic text-white uppercase tracking-tighter">Inversión en Hype</h4>
+                        </div>
+                        <div className="text-2xl font-black italic text-white mb-2">$ {new Intl.NumberFormat('es-CO').format(orders.reduce((acc, o) => acc + (Number(o.precio_venta_cop) || 0), 0))}</div>
+                        <p className="text-white/30 font-mono text-[8px] uppercase tracking-widest">Total invertido en GOAT.</p>
+                     </div>
+                     <div className="md:border-l border-white/5 md:pl-8">
+                        <div className="flex items-center gap-4 mb-6">
+                           <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                              <TrendingUp size={20} />
+                           </div>
+                           <h4 className="text-sm font-black italic text-white uppercase tracking-tighter">Saldo Pendiente</h4>
+                        </div>
+                        <div className="text-2xl font-black italic text-amber-500 mb-2">$ {new Intl.NumberFormat('es-CO').format(orders.reduce((acc, o) => acc + (Number(o.saldo_restante) || 0), 0))}</div>
+                        <p className="text-white/30 font-mono text-[8px] uppercase tracking-widest">Total acumulado a pagar.</p>
+                     </div>
+                  </div>
 
                  <div className="bg-white/5 border border-white/5 rounded-[40px] p-8 flex items-center justify-between group cursor-pointer hover:border-white/20 transition-all" onClick={() => setActiveTab('orders')}>
                     <div className="flex items-center gap-4">
@@ -261,6 +273,16 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                        <div className="text-right">
                           <div className="text-[10px] font-mono text-white/20 uppercase mb-1">{new Date(order.fecha_compra).toLocaleDateString()}</div>
                           <div className="text-lg font-black italic text-white">$ {new Intl.NumberFormat('es-CO').format(order.precio_venta_cop)}</div>
+                          <div className="mt-1">
+                             {order.saldo_restante > 100 ? (
+                                <div className="flex flex-col items-end">
+                                   <span className="text-[8px] font-mono text-amber-500/60 uppercase font-black">Pendiente:</span>
+                                   <span className="text-xs font-black italic text-amber-500">$ {new Intl.NumberFormat('es-CO').format(order.saldo_restante)}</span>
+                                </div>
+                             ) : (
+                                <span className="text-[8px] font-black bg-green-500/20 text-green-500 px-2 py-0.5 rounded uppercase tracking-tighter italic">¡PAGADO!</span>
+                             )}
+                          </div>
                        </div>
                     </div>
                     
