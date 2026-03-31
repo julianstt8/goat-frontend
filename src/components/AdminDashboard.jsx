@@ -528,7 +528,7 @@ const AdminDashboard = () => {
                                                 </span>
                                              )}
                                           </div>
-                                          <span className="font-bold text-white text-[12px] uppercase line-clamp-1 max-w-[180px] tracking-tight">
+                                          <span className="font-bold text-white text-[12px] uppercase line-clamp-2 tracking-tight">
                                              {item.producto?.referencia || item.referencia || 'Sin nombre'}
                                           </span>
                                           <span className="text-[9px] text-white/20 font-mono mt-1">{item.tracking_number || '# SIN TRACKING'}</span>

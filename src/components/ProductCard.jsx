@@ -108,7 +108,7 @@ const ProductCard = ({ product, trm, onAddToCart, onAddToWishlist, isFavorited }
             <LayoutGrid size={10} className="text-goat-red" /> 
             {product.categoria?.nombre || 'General'}
           </div>
-          <h3 className="text-base font-hype font-bold text-white uppercase italic tracking-tight opacity-90 leading-tight line-clamp-2 min-h-[44px]">
+          <h3 className="text-base font-hype font-bold text-white uppercase italic tracking-tight opacity-90 leading-[1.1] line-clamp-3 min-h-[54px]">
             {product.referencia}
           </h3>
         </div>

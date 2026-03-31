@@ -147,11 +147,13 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                           <TrendingUp size={14} className={getNivelColor(profile.nivel)} />
                        </div>
                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className={`h-full ${getNivelColor(profile.nivel).replace('text', 'bg')} opacity-50`} style={{ width: '40%' }} />
+                          <div className={`h-full ${getNivelColor(profile.nivel).replace('text', 'bg')} opacity-50 transition-all duration-1000`} style={{ width: `${profile.porcentaje_avance || 0}%` }} />
                        </div>
                        <div className="flex justify-between mt-3">
                           <span className="text-[9px] font-black uppercase font-mono text-white/20 italic">{profile.nivel}</span>
-                          <span className="text-[9px] font-black uppercase font-mono text-white/40">Próximo: {profile.nivel === 'bronze' ? 'SILVER' : 'GOLD'}</span>
+                          <span className="text-[9px] font-black uppercase font-mono text-white/40">
+                             {profile.proximo_nivel ? `Próximo: ${profile.proximo_nivel.toUpperCase()}` : 'NIVEL MÁXIMO'}
+                          </span>
                        </div>
                     </div>
 
