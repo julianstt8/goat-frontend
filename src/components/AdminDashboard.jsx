@@ -17,14 +17,26 @@ import {
 
 const Tooltip = ({ children, text }) => {
   const [show, setShow] = useState(false);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  
+  const handleMouseEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCoords({ x: rect.left + rect.width / 2, y: rect.top });
+    setShow(true);
+  };
+
   return (
-    <div className="relative inline-block w-full" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+    <div className="relative inline-block w-full" onMouseEnter={handleMouseEnter} onMouseLeave={() => setShow(false)}>
       {children}
-      {show && (
-        <div className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 bg-black/90 text-[9px] text-white font-mono rounded-lg whitespace-pre-line shadow-2xl border border-white/10 backdrop-blur-md animate-fade-in pointer-events-none uppercase tracking-tighter">
+      {show && createPortal(
+        <div 
+          className="fixed z-[10002] -translate-x-1-2 -translate-y-full mb-3 px-4 py-3 bg-black/95 text-[10px] text-white font-mono rounded-2xl whitespace-pre-line shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 backdrop-blur-xl animate-fade-in pointer-events-none uppercase tracking-tighter leading-relaxed"
+          style={{ left: coords.x, top: coords.y }}
+        >
           {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-black/90" />
-        </div>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-black/95" />
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -881,61 +893,123 @@ const AdminDashboard = () => {
                              </select>
                           </div>
                        </div>
-                    ) : (
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Venta Final (COP)</label>
-                          <input type="number" value={modalData.precio_venta_cop} onChange={(e) => setModalData({...modalData, precio_venta_cop: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" />
-                       </div>
-                    )}
+                     ) : (
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Venta Final (COP)</label>
+                           <input type="number" value={modalData.precio_venta_cop} onChange={(e) => setModalData({...modalData, precio_venta_cop: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" />
+                        </div>
+                     )}
                  </div>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Talla</label>
-                      <input type="text" value={modalData.talla} onChange={(e) => setModalData({...modalData, talla: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none" />
-                   </div>
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Peso Lb</label>
-                      <input type="number" step="0.1" value={modalData.peso_libras} onChange={(e) => setModalData({...modalData, peso_libras: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none" />
-                   </div>
-                </div>
-                <div className="space-y-1.5">
-                   <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Género (Sizing)</label>
-                   <select value={modalData.genero} onChange={(e) => setModalData({...modalData, genero: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none">
-                      <option value="hombre">Hombre (M)</option>
-                      <option value="mujer">Mujer (W)</option>
-                      <option value="junior">Junior (GS)</option>
-                      <option value="unisex">Unisex</option>
-                   </select>
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1.5 h-full"> 
+                        <Tooltip text={`🚀 INGRESO RÁPIDO:
+
+1. CARGA EN LOTE:
+Escribe varias tallas separadas por COMAS: (Ej: 8, 9, 10, 11)
+
+2. GÉNERO INTELIGENTE:
+Pon una letra al final para fijar el género:
+• M: HOMBRE (EJ: 8.5M)
+• W: MUJER (EJ: 9W)
+• GS: JUNIOR (EJ: 7GS)
+• U: UNISEX (EJ: 10U)
+
+3. EJEMPLO FINAL:
+Escribe: 8M, 9W, 7.5GS, 11U`}>
+                           <div className="flex items-center justify-between pl-1">
+                              <label className="text-[10px] uppercase font-mono text-white/40 italic">Talla(s)</label>
+                              <div className="flex items-center gap-1 text-goat-red animate-pulse">
+                                 <span className="text-[8px] font-mono font-bold uppercase tracking-widest italic">Guía Rápida</span>
+                                 <Info size={12} />
+                              </div>
+                           </div>
+                           <input 
+                             type="text" 
+                             value={modalData.talla} 
+                             onChange={(e) => setModalData({...modalData, talla: e.target.value})} 
+                             className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20 transition-all cursor-help" 
+                             placeholder="EJ: 8M, 9W, 7GS, 8.5/10"
+                           />
+                        </Tooltip>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Peso Lb (x par)</label>
+                        <input type="number" step="0.1" value={modalData.peso_libras} onChange={(e) => setModalData({...modalData, peso_libras: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none" />
+                     </div>
+                 </div>
+                 <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Género (Sizing)</label>
+                    <select value={modalData.genero} onChange={(e) => setModalData({...modalData, genero: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none">
+                       <option value="hombre">Hombre (M)</option>
+                       <option value="mujer">Mujer (W)</option>
+                       <option value="junior">Junior (GS)</option>
+                       <option value="unisex">Unisex</option>
+                    </select>
+                 </div>
              </div>
 
              <div className="p-8 grid grid-cols-2 gap-3 border-t border-white/5 bg-white/[0.01]">
                 <button onClick={() => setSelectedProduct(null)} className="h-14 bg-white/5 text-white/40 font-mono font-bold text-xs rounded-2xl hover:bg-white/10 transition-all uppercase">Cerrar</button>
                 <button 
                   onClick={async () => {
-                      setLoading(true);
-                      try {
-                         if (selectedProduct.isNew) {
-                            await productService.create(modalData);
-                            showNotification('success', '¡Producto añadido a Stock!');
-                         } else {
-                             await productService.update(selectedProduct.id, { 
-                                ...modalData,
-                                es_serializado: modalProductType,
-                                stock_disponible: modalStockQty
-                             });
-                             showNotification('success', '¡Stock actualizado!');
-                          }
-                          productService.getAll().then(setAllProducts);
-                          setSelectedProduct(null);
-                       } catch (err) { 
-                          const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Error al guardar';
-                          showNotification('error', msg); 
-                       } finally { setLoading(false); }
+                      const sizes = modalData.talla.split(',').map(s => s.trim()).filter(s => s);
+                      
+                      const processSave = async () => {
+                         setLoading(true);
+                         try {
+                            if (selectedProduct.isNew) {
+                               const items = sizes.map(sizeStr => {
+                                  let size = sizeStr.toUpperCase();
+                                  let genero = modalData.genero;
+                                  
+                                  // Parser inteligente
+                                  if (size.endsWith('M')) { genero = 'hombre'; size = size.replace('M', ''); }
+                                  else if (size.endsWith('W')) { genero = 'mujer'; size = size.replace('W', ''); }
+                                  else if (size.endsWith('GS') || size.endsWith('Y') || size.endsWith('J')) { genero = 'junior'; size = size.replace(/(GS|Y|J)$/, ''); }
+                                  else if (size.endsWith('U') || size.includes('/')) { genero = 'unisex'; size = size.replace('U', ''); }
+
+                                  return {
+                                     ...modalData,
+                                     talla: size.trim(),
+                                     genero
+                                  };
+                               });
+
+                               if (items.length > 1) {
+                                  await productService.createBatch(items);
+                               } else {
+                                  await productService.create(items[0]);
+                               }
+                               showNotification('success', `¡${items.length > 1 ? items.length + ' productos añadidos' : 'Producto añadido'} a Stock!`);
+                            } else {
+                               await productService.update(selectedProduct.id, { 
+                                  ...modalData,
+                                  es_serializado: modalProductType,
+                                  stock_disponible: modalStockQty
+                               });
+                               showNotification('success', '¡Stock actualizado!');
+                            }
+                            productService.getAll().then(setAllProducts);
+                            setSelectedProduct(null);
+                         } catch (err) { 
+                            const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Error al guardar';
+                            showNotification('error', msg); 
+                         } finally { setLoading(false); }
+                      };
+
+                      if (selectedProduct.isNew) {
+                         askConfirm(`¿Confirmas el ingreso de ${sizes.length} pares a Stock?`, processSave);
+                      } else {
+                         processSave();
+                      }
                     }} 
                     className="h-14 bg-goat-red text-white font-hype font-black rounded-2xl shadow-xl shadow-goat-red/20 transition-all uppercase italic"
                   >
-                    {selectedProduct.isNew ? 'Crear Producto' : 'Guardar Cambios'}
+                    {selectedProduct.isNew 
+                     ? (modalData.talla.split(',').filter(s => s.trim()).length > 1 
+                        ? `Crear ${modalData.talla.split(',').filter(s => s.trim()).length} Productos` 
+                        : 'Crear Producto') 
+                     : 'Guardar Cambios'}
                   </button>
              </div>
           </div>

@@ -29,6 +29,10 @@ export const productService = {
     const response = await api.post('/products', productData);
     return response.data;
   },
+  createBatch: async (items) => {
+    const response = await api.post('/products/batch', { items });
+    return response.data;
+  },
   update: async (id, productData) => {
     const response = await api.patch(`/products/${id}`, productData);
     return response.data;
