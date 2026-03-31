@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, X, Plus, Minus, Send, CheckCircle2 } from 'lucide-react';
+import { orderService } from '../services/api';
 
 const CartDrawer = ({ 
   isOpen, 
@@ -7,19 +8,74 @@ const CartDrawer = ({
   cartItems, 
   onUpdateQuantity, 
   onRemove, 
+  onClear,
   totals, 
-  trm 
+  trm,
+  user // Añadir usuario prop
 }) => {
+  const [customer, setCustomer] = React.useState({ 
+    nombre: '', 
+    telefono: '',
+    ciudad: '',
+    direccion: ''
+  });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
   if (!isOpen) return null;
 
-  const handleWhatsAppCheckout = () => {
-    const text = `Hola *GOAT.ENCARGOS*! 🔥\n\nQuiero realizar un pedido:\n\n` +
-      cartItems.map(item => `- ${item.referencia} (Talla: ${item.talla || 'N/A'}) x${item.quantity}`).join('\n') +
-      `\n\n*Total a pagar:* $${new Intl.NumberFormat('es-CO').format(totals.totalCop)} COP` +
-      `\n*Abono inicial (50%):* $${new Intl.NumberFormat('es-CO').format(totals.depositCop)} COP` +
-      `\n\nQuedo atento(a) para confirmar mi pedido. ✅`;
-    
-    window.open(`https://wa.me/573000000000?text=${encodeURIComponent(text)}`, '_blank');
+  const handleWhatsAppCheckout = async () => {
+    // Si no está registrado y no llenó datos básicos, pedirlos
+    if (!user && (!customer.nombre || !customer.telefono || !customer.ciudad || !customer.direccion)) {
+       alert("Por favor, completa todos los campos de envío para registrar tu pedido.");
+       return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Registrar pedido vía API para congelar stock
+      const response = await orderService.createBatch({
+        items: cartItems,
+        cliente: user ? { id: user.id } : { ...customer, email: `${customer.telefono}@goat.com` },
+        trm_used: trm.valor + 200,
+        es_reserva: true,
+        ciudad_envio: user ? (user.ciudad || customer.ciudad) : customer.ciudad,
+        direccion_envio: user ? (user.direccion || customer.direccion) : customer.direccion
+      });
+
+      const pedidoId = response.pedidos?.[0]?.id?.split('-')[0] || 'N/A';
+      
+      // Mapeo seguro de dirección e información de cliente
+      const clientName = (user?.nombre_completo || customer.nombre || 'Invitado').toUpperCase();
+      const phone = user?.telefono || customer.telefono || 'N/A';
+      
+      // Buscar dirección en raíz o en listado de direcciones si existe
+      const city = (user?.ciudad || customer.ciudad || 'Por confirmar').toUpperCase();
+      const addr = (user?.direccion || customer.direccion || 'Por confirmar').toUpperCase();
+
+      const text = `🔥 *ORDEN DE COMPRA GOAT* 🔥\n\n` +
+        `🆔 *PEDIDO:* #${pedidoId}\n\n` +
+        `👤 *CLIENTE:* ${clientName}\n` +
+        `📱 *WhatsApp:* ${phone}\n\n` +
+        `📍 *DATOS DE ENVÍO:*\n` +
+        `Ciudad: ${city}\n` +
+        `Dirección: ${addr}\n\n` +
+        `👟 *PRODUCTOS:* \n` +
+        cartItems.map(item => `- ${item.referencia} (Talla: ${item.talla || 'N/A'})`).join('\n') +
+        `\n\n💰 *RESUMEN DE PAGO:*\n` +
+        `*Total:* $ ${new Intl.NumberFormat('es-CO').format(totals.totalCop)}\n` +
+        `*Abono (50%):* $ ${new Intl.NumberFormat('es-CO').format(totals.depositCop)}\n\n` +
+        `✅ _Registrado en la web oficial. Adjunto comprobante..._`;
+      
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=573117780713&text=${encodeURIComponent(text)}`;
+      window.open(whatsappUrl, '_blank');
+      onClear();
+      onClose();
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert("Hubo un error al registrar tu pedido. Por favor, intenta de nuevo.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,6 +147,40 @@ const CartDrawer = ({
 
         {cartItems.length > 0 && (
           <div className="p-6 bg-white/[0.03] border-t border-white/10 space-y-4">
+             {(!user || (!user.ciudad || !user.direccion)) && (
+               <div className="space-y-3 mb-4 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre Completo" 
+                      value={customer.nombre}
+                      onChange={(e) => setCustomer({...customer, nombre: e.target.value})}
+                      className="bg-black/40 border border-white/10 h-12 rounded-xl px-4 text-xs font-mono outline-none focus:border-goat-red/30"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="WhatsApp" 
+                      value={customer.telefono}
+                      onChange={(e) => setCustomer({...customer, telefono: e.target.value})}
+                      className="bg-black/40 border border-white/10 h-12 rounded-xl px-4 text-xs font-mono outline-none focus:border-goat-red/30"
+                    />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Ciudad (Ej: Medellín)" 
+                    value={customer.ciudad}
+                    onChange={(e) => setCustomer({...customer, ciudad: e.target.value})}
+                    className="w-full bg-black/40 border border-white/10 h-12 rounded-xl px-4 text-xs font-mono outline-none focus:border-goat-red/30"
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Dirección Completa" 
+                    value={customer.direccion}
+                    onChange={(e) => setCustomer({...customer, direccion: e.target.value})}
+                    className="w-full bg-black/40 border border-white/10 h-12 rounded-xl px-4 text-xs font-mono outline-none focus:border-goat-red/30"
+                  />
+               </div>
+             )}
              <div className="space-y-1">
                <div className="flex justify-between items-center text-lg font-hype font-bold">
                  <span>Total a Pagar</span>
@@ -115,10 +205,15 @@ const CartDrawer = ({
 
              <button 
                onClick={handleWhatsAppCheckout}
-               className="w-full bg-goat-red hover:bg-red-700 h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-hype font-bold transition-all transform active:scale-[0.98] shadow-lg shadow-goat-red/20 border border-white/10"
+               disabled={isSubmitting}
+               className={`w-full bg-goat-red hover:bg-red-700 h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-hype font-bold transition-all transform active:scale-[0.98] shadow-lg shadow-goat-red/20 border border-white/10 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
              >
-               <Send size={20} />
-               FINALIZAR EN WHATSAPP
+               {isSubmitting ? (
+                 <div className="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+               ) : (
+                 <Send size={20} />
+               )}
+               {isSubmitting ? 'REGISTRANDO...' : 'FINALIZAR EN WHATSAPP'}
              </button>
              
              <p className="text-[10px] text-center text-white/20 font-mono uppercase tracking-[0.2em]">

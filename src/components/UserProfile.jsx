@@ -398,10 +398,10 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                   </h2>
                   <p className="text-white/40 font-mono text-xs max-w-sm uppercase tracking-widest leading-relaxed">¿Dudas con tu pedido o necesitas asesoría? Chatea directamente con nuestro equipo encargado del Hype.</p>
                   <a 
-                    href="https://wa.me/573000000000" 
+                    href="https://wa.me/573117780713" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="inline-flex h-16 px-10 bg-green-500 text-black rounded-3xl font-hype font-black uppercase text-sm hover:scale-105 hover:bg-green-400 transition-all items-center gap-3"
+                    className="w-full bg-green-500 hover:bg-green-600 h-14 rounded-2xl flex items-center justify-center gap-3 text-white font-hype font-bold transition-all transform active:scale-[0.98] shadow-lg shadow-green-500/20"
                   >
                     Hablar por WhatsApp <ExternalLink size={18} />
                   </a>

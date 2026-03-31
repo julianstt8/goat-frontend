@@ -208,15 +208,16 @@ const AdminDashboard = () => {
 
   const handleUpdateOrder = async () => {
     setLoading(true);
+    const orderId = selectedOrder.id || selectedOrder.pedido_id;
     try {
-      await orderService.update(selectedOrder.id || selectedOrder.pedido_id, {
+      await orderService.updateStatus(orderId, {
         estado_logistico: newStatus,
         tracking_number: trackingNumber,
-        fecha_compra: newPurchaseDate
+        fecha_compra: newPurchaseDate || null
       });
 
       if (paymentAmount > 0) {
-        await paymentService.create(selectedOrder.id || selectedOrder.pedido_id, {
+        await paymentService.create(orderId, {
           monto_cop: paymentAmount,
           fecha_pago: paymentDate,
           tipo_abono: 'parcial'
@@ -251,14 +252,34 @@ const AdminDashboard = () => {
      
      setLoading(true);
      try {
-        await orderService.createBatch({
-           items: quoteItems,
-           cliente: quoterCustomer,
-           trm_used: trm.valor + 200 
-        });
+        // Si tenemos un producto seleccionado, es una venta directa de Stock
+        if (selectedProduct && !selectedProduct.isNew) {
+           await orderService.create({
+              usuario_id: quoterCustomer.id,
+              producto_id: selectedProduct.id,
+              precio_venta_cop: selectedProduct.precio_venta_cop,
+              trm_utilizada: trm.valor + 200, // Cushion TRM
+              // Info para crear cliente si es nuevo
+              ...(!quoterCustomer.id && {
+                 referencia: selectedProduct.referencia,
+                 nombre: quoterCustomer.nombre,
+                 email: quoterCustomer.email,
+                 telefono: quoterCustomer.telefono
+              })
+           });
+        } else {
+           // Es una cotización con múltiples ítems
+           await orderService.createBatch({
+              items: quoteItems,
+              cliente: quoterCustomer,
+              trm_used: trm.valor + 200 
+           });
+        }
+
         showNotification('success', '¡Pedido registrado con éxito!');
         setIsQuoterFinishModalOpen(false);
         handleResetQuoter();
+        setSelectedProduct(null);
         orderService.getAll().then(setOrders);
         productService.getAll().then(setAllProducts);
         reportService.getDebtors().then(setDebtors);
@@ -485,62 +506,91 @@ const AdminDashboard = () => {
                               <SortHeader label="Venta (COP)" field="precio_venta_cop" currentField={sortField} onSort={toggleSort} align="right" />
                               <th className="px-4 py-3 font-black italic text-right">Admin</th>
                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                           {(activeTab === 'orders' ? processedOrders : processedDebtors).items.map((item) => (
-                             <tr key={item.id || item.pedido_id} className="hover:bg-white/[0.02] transition-colors group">
-                                <td className="px-4 py-3">
-                                   <div className="flex flex-col">
-                                      <span className="font-bold text-white uppercase line-clamp-1 max-w-[150px]">
-                                         {item.producto?.referencia || item.referencia || 'Sin nombre'}
-                                      </span>
-                                      <span className="text-[9px] text-white/40">{item.tracking_number || 'Sin Tracking'}</span>
-                                   </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                   <div className="flex flex-col">
-                                      <span className="text-goat-red font-black uppercase italic tracking-tighter line-clamp-1">
-                                         {item.cliente?.nombre_completo || item.cliente || 'Consumidor'}
-                                      </span>
-                                      <span className="text-[9px] text-white/20">{item.telefono || 'N/A'}</span>
-                                   </div>
-                                </td>
-                                <td className="px-4 py-3 text-[10px] text-white/40 whitespace-nowrap">
-                                   {new Date(item.fecha_compra || item.createdAt).toLocaleDateString()}
-                                </td>
-                                <td className="px-4 py-3">
-                                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase ${item.estado_logistico === 'entregado' ? 'bg-green-500/10 text-green-500' : item.estado_logistico === 'en_transito' ? 'bg-goat-blue/10 text-goat-blue' : 'bg-white/10 text-white/40'}`}>
-                                      {(item.estado_logistico || 'pend').replace('_', ' ')}
-                                   </span>
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                   <div className="flex flex-col items-end">
-                                      <span className="font-black italic">$ {new Intl.NumberFormat('es-CO').format(item.precio_venta_cop)}</span>
-                                      <span className="text-[9px] text-green-500/60 font-mono">P: $ {new Intl.NumberFormat('es-CO').format(item.total_pagado || 0)}</span>
-                                   </div>
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                   <div className="flex gap-1 justify-end">
-                                      <button onClick={() => setSelectedOrder(item)} className="p-1.5 bg-white/5 hover:bg-goat-blue rounded-lg transition-all"><Activity size={12} /></button>
-                                      <button 
-                                        onClick={() => {
-                                           askConfirm(`¿Eliminar pedido?\nEl producto volverá a estar disponible.`, async () => {
-                                              await orderService.delete(item.id || item.pedido_id);
-                                              orderService.getAll().then(setOrders);
-                                              productService.getAll().then(setAllProducts);
-                                              reportService.getDebtors().then(setDebtors);
-                                              showNotification('success', 'Pedido eliminado y stock retornado');
-                                           });
-                                        }} 
-                                        className="p-1.5 bg-white/5 hover:bg-goat-red rounded-lg transition-all"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                   </div>
-                                </td>
-                             </tr>
-                           ))}
-                        </tbody>
+                                             </thead>
+                         <tbody className="divide-y divide-white/5">
+                            {(activeTab === 'orders' ? processedOrders : processedDebtors).items.map((item) => {
+                               const isWeb = (!item.vendedor && !item.creador_rol) || 
+                                            (item.vendedor?.rol === 'cliente_standard' || item.creador_rol === 'cliente_standard');
+                               return (
+                                 <tr key={item.id || item.pedido_id} className={`hover:bg-white/[0.02] transition-colors group border-l-4 ${isWeb ? 'border-l-goat-red/40 shadow-[inset_4px_0_10px_-2px_rgba(239,68,68,0.1)]' : 'border-l-white/5'}`}>
+                                    <td className="px-4 py-4">
+                                       <div className="flex flex-col">
+                                          <div className="flex items-center gap-1.5 mb-0.5">
+                                             {isWeb ? (
+                                                <span className="text-[7px] font-black uppercase tracking-[0.2em] text-goat-red flex items-center gap-1 animate-pulse">
+                                                   <span className="w-1 h-1 rounded-full bg-goat-red"></span> WEB / TIENDA
+                                                </span>
+                                             ) : (
+                                                <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/30 flex items-center gap-1">
+                                                   <span className="w-1 h-1 rounded-full bg-white/20"></span> ENCARGO MANUAL
+                                                </span>
+                                             )}
+                                          </div>
+                                          <span className="font-bold text-white text-[12px] uppercase line-clamp-1 max-w-[180px] tracking-tight">
+                                             {item.producto?.referencia || item.referencia || 'Sin nombre'}
+                                          </span>
+                                          <span className="text-[9px] text-white/20 font-mono mt-1">{item.tracking_number || '# SIN TRACKING'}</span>
+                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                       <div className="flex flex-col">
+                                          <span className="text-goat-red font-black uppercase italic tracking-tighter line-clamp-1">
+                                             {item.cliente?.nombre_completo || item.cliente || 'Consumidor'}
+                                          </span>
+                                          <span className="text-[9px] text-white/20">{item.telefono || 'N/A'}</span>
+                                          {item.ciudad && (
+                                            <span className="text-[9px] text-white/40 mt-1 flex items-center gap-1">
+                                              <span className="w-1 h-1 rounded-full bg-white/20"></span> {item.ciudad}
+                                            </span>
+                                          )}
+                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-[10px] text-white/40 whitespace-nowrap">
+                                       {new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(item.fecha_compra))}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                       <div className="flex flex-col gap-1">
+                                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase text-center ${item.estado_logistico === 'entregado' ? 'bg-green-500/10 text-green-500' : item.estado_logistico === 'en_transito' ? 'bg-goat-blue/10 text-goat-blue' : 'bg-white/10 text-white/40'}`}>
+                                             {(item.estado_logistico || 'pend').replace('_', ' ')}
+                                          </span>
+                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                       <div className="flex flex-col items-end">
+                                          <span className="font-black italic text-xs">$ {new Intl.NumberFormat('es-CO').format(item.precio_venta_cop)}</span>
+                                          <span className="text-[9px] text-green-500/60 font-mono">P: $ {new Intl.NumberFormat('es-CO').format(item.total_pagado || 0)}</span>
+                                       </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex gap-2 justify-end">
+                                           <button 
+                                             onClick={() => setSelectedOrder(item)} 
+                                             className="p-2 bg-goat-blue/10 hover:bg-goat-blue text-goat-blue hover:text-white rounded-xl transition-all"
+                                             title="Gestionar Pedido y Pagos"
+                                           >
+                                             <Activity size={16} />
+                                           </button>
+                                           <button 
+                                             onClick={() => {
+                                                askConfirm(`¿Deseas inactivar este pedido?\nEl producto volverá a estar disponible en Stock.`, async () => {
+                                                   await orderService.delete(item.id || item.pedido_id);
+                                                   orderService.getAll().then(setOrders);
+                                                   productService.getAll().then(setAllProducts);
+                                                   reportService.getDebtors().then(setDebtors);
+                                                   showNotification('success', 'Pedido inactivado y stock retornado');
+                                                });
+                                             }} 
+                                             className="p-2 bg-white/5 hover:bg-goat-red/80 text-white/20 hover:text-white rounded-xl transition-all"
+                                             title="Inactivar Pedido"
+                                           >
+                                             <Trash2 size={14} />
+                                           </button>
+                                        </div>
+                                    </td>
+                                 </tr>
+                               );
+                            })}
+                         </tbody>
                      </table>
                      <PaginationUI data={{ ...(activeTab === 'orders' ? processedOrders : processedDebtors), currentPage }} onPageChange={setCurrentPage} />
                   </div>
@@ -671,9 +721,23 @@ const AdminDashboard = () => {
                                 <tr key={prod.id} className="hover:bg-white/[0.02]">
                                    <td className="px-4 py-3 font-bold uppercase">{prod.referencia}</td>
                                    <td className="px-4 py-3 text-white/40">{prod.talla || 'N/A'}</td>
-                                   <td className="px-4 py-3 text-right text-green-500">$ {new Intl.NumberFormat('es-CO').format(prod.precio_venta_cop || 0)}</td>
+                                   <td className="px-4 py-3 text-right text-green-500 font-bold">$ {new Intl.NumberFormat('es-CO').format(prod.precio_venta_cop || 0)}</td>
                                    <td className="px-4 py-3 text-center">
                                       <div className="flex gap-1 justify-center">
+                                         <button 
+                                            onClick={() => {
+                                              setQuoterCustomer({ id: '', nombre: '', email: '', telefono: '' });
+                                              setSelectedProduct(prod);
+                                              setConfirmState({
+                                                message: `¿Iniciar venta directa de este producto?\n\nREFERENCIA: ${prod.referencia}\nPRECIO: $${new Intl.NumberFormat('es-CO').format(prod.precio_venta_cop)}`,
+                                                onConfirm: () => setIsQuoterFinishModalOpen(true)
+                                              });
+                                            }} 
+                                            className="p-1.5 bg-green-500/10 text-green-500 hover:bg-green-500 rounded-lg hover:text-white transition-all shadow-lg active:scale-95" 
+                                            title="Vender"
+                                          >
+                                            <DollarSign size={12} />
+                                          </button>
                                          <button onClick={() => setSelectedProduct(prod)} className="p-1.5 bg-white/5 hover:bg-goat-blue rounded-lg transition-all" title="Editar"><Activity size={12} /></button>
                                          <button 
                                             onClick={() => {
@@ -816,6 +880,37 @@ const AdminDashboard = () => {
              </div>
              
              <div className="p-8 space-y-6 overflow-y-auto">
+                {/* Resumen Financiero */}
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-5 grid grid-cols-3 gap-2">
+                   <div className="flex flex-col">
+                      <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">Total Venta</span>
+                      <span className="text-xs font-black italic">$ {new Intl.NumberFormat('es-CO').format(orderPayments?.precio_venta_cop || 0)}</span>
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">Ya Abonado</span>
+                      <span className="text-xs font-black italic text-green-500">$ {new Intl.NumberFormat('es-CO').format(orderPayments?.total_pagado || 0)}</span>
+                   </div>
+                   <div className="flex flex-col border-l border-white/10 pl-3">
+                      <span className="text-[8px] font-mono text-goat-red uppercase tracking-widest">Por Pagar</span>
+                      <span className="text-sm font-black italic text-white animate-pulse">$ {new Intl.NumberFormat('es-CO').format(orderPayments?.saldo_restante || 0)}</span>
+                   </div>
+                </div>
+
+                {/* Historial de Pagos */}
+                {orderPayments?.pagos?.length > 0 && (
+                   <div className="space-y-2">
+                      <h5 className="text-[9px] font-mono text-white/20 uppercase italic px-1">Historial de Abonos</h5>
+                      <div className="space-y-1">
+                         {orderPayments.pagos.map((p, idx) => (
+                            <div key={idx} className="bg-black/20 rounded-xl p-3 flex justify-between items-center text-[10px] font-mono">
+                               <span className="text-white/40">{new Date(p.fecha_pago).toLocaleDateString()}</span>
+                               <span className="text-green-500/80 font-black italic">+$ {new Intl.NumberFormat('es-CO').format(p.monto_cop)}</span>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-1.5">
                       <label className="text-[10px] font-mono text-white/40 uppercase italic pl-1">Estado Logístico</label>

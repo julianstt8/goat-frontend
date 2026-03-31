@@ -46,6 +46,7 @@ function App() {
     addToCart, 
     removeFromCart, 
     updateQuantity, 
+    clearCart,
     calculateTotals 
   } = useCart();
 
@@ -346,8 +347,10 @@ function App() {
           cartItems={cartItems}
           onUpdateQuantity={updateQuantity}
           onRemove={removeFromCart}
+          onClear={clearCart}
           totals={totals}
           trm={trm}
+          user={user}
         />
        </>
     );
