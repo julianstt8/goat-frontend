@@ -190,10 +190,10 @@ function App() {
       if (!groups[key]) {
         groups[key] = {
           ...p,
-          variants: [{ id: p.id, talla: p.talla || 'UNISIZE' }]
+          variants: [{ id: p.id, talla: p.talla || 'UNISIZE', genero: p.genero || 'unisex' }]
         };
       } else {
-        groups[key].variants.push({ id: p.id, talla: p.talla || 'UNISIZE' });
+        groups[key].variants.push({ id: p.id, talla: p.talla || 'UNISIZE', genero: p.genero || 'unisex' });
       }
     });
 

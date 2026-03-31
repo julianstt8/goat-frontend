@@ -60,16 +60,27 @@ const ProductCard = ({ product, trm, onAddToCart, onAddToWishlist, isFavorited }
         </button>
 
         {/* Quick Size Toggle (Mobile Friendly) */}
-        {variants.length > 1 && (
-          <div className="absolute bottom-4 inset-x-4 flex justify-center z-20">
-             <button 
-               onClick={(e) => { e.stopPropagation(); setShowSizes(!showSizes); }}
-               className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black flex items-center gap-2 hover:bg-white hover:text-black transition-all"
-             >
-                TALLA: {selectedVariant.talla} <ChevronDown size={14} className={`transition-transform duration-300 ${showSizes ? 'rotate-180' : ''}`} />
-             </button>
-          </div>
-        )}
+        <div className="absolute bottom-4 inset-x-4 flex justify-center z-20">
+           <button 
+             onClick={(e) => { 
+                if (variants.length > 1) {
+                   e.stopPropagation(); 
+                   setShowSizes(!showSizes); 
+                }
+             }}
+             className={`bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl text-[10px] font-black flex items-center gap-2 transition-all ${variants.length > 1 ? 'hover:bg-white hover:text-black cursor-pointer' : 'cursor-default opacity-80'}`}
+           >
+              TALLA: {selectedVariant.talla} 
+              <span className="text-white/40 text-[9px]">
+                 {selectedVariant.genero === 'hombre' ? 'M' : 
+                  selectedVariant.genero === 'mujer' ? 'W' : 
+                  selectedVariant.genero === 'junior' ? 'GS' : 'UNISEX'}
+              </span>
+              {variants.length > 1 && (
+                 <ChevronDown size={14} className={`transition-transform duration-300 ${showSizes ? 'rotate-180' : ''}`} />
+              )}
+           </button>
+        </div>
       </div>
 
       <div className="p-6 flex flex-col flex-grow bg-white/[0.01]">

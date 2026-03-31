@@ -58,7 +58,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('fecha_compra');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [inventoryFilter, setInventoryFilter] = useState('all');
+  const [inventoryFilter, setInventoryFilter] = useState('available');
   const [inventoryView, setInventoryView] = useState('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -72,7 +72,7 @@ const AdminDashboard = () => {
   const [orderPayments, setOrderPayments] = useState([]);
 
   // Stock Edit Modal State
-  const [modalData, setModalData] = useState({ id: '', referencia: '', categoria_id: '', talla: '', precio_venta_cop: 0, peso_libras: 0, en_stock: true });
+  const [modalData, setModalData] = useState({ id: '', referencia: '', categoria_id: '', talla: '', genero: 'unisex', precio_venta_cop: 0, peso_libras: 0, en_stock: true });
   const [modalProductType, setModalProductType] = useState(true);
   const [modalStockQty, setModalStockQty] = useState(1);
 
@@ -106,6 +106,7 @@ const AdminDashboard = () => {
           referencia: selectedProduct.referencia,
           categoria_id: selectedProduct.categoria_id,
           talla: selectedProduct.talla || '',
+          genero: selectedProduct.genero || 'unisex',
           precio_venta_cop: selectedProduct.precio_venta_cop || 0,
           peso_libras: selectedProduct.peso_libras || 0,
           en_stock: selectedProduct.en_stock
@@ -321,9 +322,9 @@ const AdminDashboard = () => {
     };
   };
 
-  const processedOrders = useMemo(() => paginate(filterAndSort(orders)), [orders, searchTerm, sortField, sortDirection, currentPage]);
-  const processedDebtors = useMemo(() => paginate(filterAndSort(debtors)), [debtors, searchTerm, sortField, sortDirection, currentPage]);
-  const processedInventory = useMemo(() => paginate(filterAndSort(allProducts)), [allProducts, searchTerm, sortField, sortDirection, inventoryFilter, currentPage]);
+  const processedOrders = useMemo(() => paginate(filterAndSort(orders)), [orders, searchTerm, sortField, sortDirection, currentPage, activeTab]);
+  const processedDebtors = useMemo(() => paginate(filterAndSort(debtors)), [debtors, searchTerm, sortField, sortDirection, currentPage, activeTab]);
+  const processedInventory = useMemo(() => paginate(filterAndSort(allProducts)), [allProducts, searchTerm, sortField, sortDirection, inventoryFilter, currentPage, activeTab]);
 
   const PaginationUI = ({ data, onPageChange }) => (
     <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
@@ -574,6 +575,24 @@ const AdminDashboard = () => {
                         </div>
                      </div>
                      <div className="flex gap-2">
+                        <button 
+                           onClick={() => {
+                              setSelectedProduct({ isNew: true });
+                              setModalData({ 
+                                 referencia: '', 
+                                 categoria_id: categories[0]?.id || '', 
+                                 talla: '', 
+                                 genero: 'unisex', 
+                                 precio_venta_cop: 0, 
+                                 peso_libras: 2, 
+                                 precio_compra_usd: 0,
+                                 en_stock: true 
+                              });
+                           }}
+                           className="flex items-center gap-2 px-6 py-2.5 bg-goat-red text-white text-[10px] font-black uppercase rounded-xl hover:shadow-lg hover:shadow-goat-red/20 transition-all italic tracking-tighter"
+                         >
+                            <Plus size={16} /> NUEVO INGRESO
+                         </button>
                         <button onClick={handleRecalculatePrices} className="p-2.5 bg-white/5 hover:text-green-500 rounded-xl transition-all"><RefreshCw size={16} /></button>
                         <button onClick={() => setInventoryView(inventoryView === 'grid' ? 'list' : 'grid')} className="p-2.5 bg-white/5 text-white/40 rounded-xl hover:text-white transition-all">
                            {inventoryView === 'grid' ? <Plus className="rotate-45" size={16} /> : <LayoutGrid size={16} />}
@@ -591,7 +610,27 @@ const AdminDashboard = () => {
                                   <span className={`text-[8px] font-black px-2 py-0.5 rounded-md ${prod.vendido ? 'bg-goat-red text-white' : 'bg-green-500 text-black'}`}>{prod.vendido ? 'VENDIDO' : 'STOCK'}</span>
                                </div>
                                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => setSelectedProduct(prod)} className="p-2 bg-white text-black rounded-lg transition-colors"><Activity size={12} /></button>
+                                  <button onClick={() => setSelectedProduct(prod)} className="p-2 bg-white text-black rounded-lg transition-colors" title="Editar"><Activity size={12} /></button>
+                                  <button 
+                                    onClick={() => {
+                                       askConfirm(`¿Inactivar "${prod.referencia}" del catálogo?\nEl registro permanecerá en la base de datos pero no será visible.`, async () => {
+                                          setLoading(true);
+                                          try {
+                                             await productService.delete(prod.id);
+                                             showNotification('success', '¡Producto inactivado!');
+                                             productService.getAll().then(setAllProducts);
+                                          } catch (err) {
+                                             showNotification('error', 'No se pudo inactivar el producto');
+                                          } finally {
+                                             setLoading(false);
+                                          }
+                                       });
+                                    }} 
+                                    className="p-2 bg-goat-red text-white rounded-lg transition-colors" 
+                                    title="Inactivar"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
                                </div>
                             </div>
                             <div className="p-4 bg-white/[0.01]">
@@ -612,7 +651,7 @@ const AdminDashboard = () => {
                                  <th className="px-4 py-3 font-black text-left">Referencia</th>
                                  <th className="px-4 py-3 font-black text-left">Talla</th>
                                  <th className="px-4 py-3 font-black text-right">Precio</th>
-                                 <th className="px-4 py-3 font-black text-center">Acción</th>
+                                 <th className="px-4 py-3 font-black text-center">Acciones</th>
                               </tr>
                            </thead>
                            <tbody className="divide-y divide-white/5">
@@ -622,7 +661,29 @@ const AdminDashboard = () => {
                                    <td className="px-4 py-3 text-white/40">{prod.talla || 'N/A'}</td>
                                    <td className="px-4 py-3 text-right text-green-500">$ {new Intl.NumberFormat('es-CO').format(prod.precio_venta_cop || 0)}</td>
                                    <td className="px-4 py-3 text-center">
-                                      <button onClick={() => setSelectedProduct(prod)} className="p-1.5 bg-white/5 hover:bg-goat-blue rounded-lg transition-all"><Activity size={12} /></button>
+                                      <div className="flex gap-1 justify-center">
+                                         <button onClick={() => setSelectedProduct(prod)} className="p-1.5 bg-white/5 hover:bg-goat-blue rounded-lg transition-all" title="Editar"><Activity size={12} /></button>
+                                         <button 
+                                            onClick={() => {
+                                               askConfirm(`¿Inactivar del catálogo?`, async () => {
+                                                  setLoading(true);
+                                                  try {
+                                                     await productService.delete(prod.id);
+                                                     showNotification('success', '¡Producto inactivado!');
+                                                     productService.getAll().then(setAllProducts);
+                                                  } catch (err) {
+                                                     showNotification('error', 'Error al inactivar');
+                                                  } finally {
+                                                     setLoading(false);
+                                                  }
+                                               });
+                                            }} 
+                                            className="p-1.5 bg-white/5 hover:bg-goat-red rounded-lg transition-all" 
+                                            title="Inactivar"
+                                         >
+                                            <Trash2 size={12} />
+                                         </button>
+                                      </div>
                                    </td>
                                 </tr>
                               ))}
@@ -789,17 +850,44 @@ const AdminDashboard = () => {
           <div className="bg-goat-card border border-white/10 w-full max-w-lg rounded-[40px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-slide-up">
              <div className="p-8 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                 <div>
-                  <h4 className="text-xl font-hype font-black italic uppercase">Editar <span className="text-goat-red">Stock</span></h4>
-                  <p className="text-[10px] font-mono text-white/30 uppercase mt-1">ID: #{selectedProduct.id}</p>
+                  <h4 className="text-xl font-hype font-black italic uppercase">{selectedProduct.isNew ? 'Nuevo' : 'Editar'} <span className="text-goat-red">Stock</span></h4>
+                  <p className="text-[10px] font-mono text-white/30 uppercase mt-1">{selectedProduct.isNew ? 'Añadir item a catálogo' : `ID: #${selectedProduct.id}`}</p>
                 </div>
                 <button onClick={() => setSelectedProduct(null)} className="p-2 hover:bg-white/5 rounded-full text-white/20 hover:text-white transition-all"><Plus size={24} className="rotate-45" /></button>
              </div>
              
              <div className="p-8 space-y-6 overflow-y-auto">
-                <div className="space-y-1.5">
-                   <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Venta Final (COP)</label>
-                   <input type="number" value={modalData.precio_venta_cop} onChange={(e) => setModalData({...modalData, precio_venta_cop: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" />
-                </div>
+                <div className="space-y-4">
+                    <div>
+                       <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Referencia del Producto</label>
+                       <input 
+                         type="text" 
+                         value={modalData.referencia} 
+                         onChange={(e) => setModalData({...modalData, referencia: e.target.value})} 
+                         className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" 
+                         placeholder="EJ: NIKE DUNK LOW BLACK WHITE"
+                       />
+                    </div>
+                    {selectedProduct.isNew ? (
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                             <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Costo USD (Llegada)</label>
+                             <input type="number" value={modalData.precio_compra_usd} onChange={(e) => setModalData({...modalData, precio_compra_usd: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Categoría</label>
+                             <select value={modalData.categoria_id} onChange={(e) => setModalData({...modalData, categoria_id: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20">
+                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre.toUpperCase()}</option>)}
+                             </select>
+                          </div>
+                       </div>
+                    ) : (
+                       <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Venta Final (COP)</label>
+                          <input type="number" value={modalData.precio_venta_cop} onChange={(e) => setModalData({...modalData, precio_venta_cop: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none focus:border-white/20" />
+                       </div>
+                    )}
+                 </div>
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-1.5">
                       <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Talla</label>
@@ -810,28 +898,45 @@ const AdminDashboard = () => {
                       <input type="number" step="0.1" value={modalData.peso_libras} onChange={(e) => setModalData({...modalData, peso_libras: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none" />
                    </div>
                 </div>
+                <div className="space-y-1.5">
+                   <label className="text-[10px] uppercase font-mono text-white/40 pl-1 italic">Género (Sizing)</label>
+                   <select value={modalData.genero} onChange={(e) => setModalData({...modalData, genero: e.target.value})} className="w-full bg-goat-black border border-white/10 h-14 rounded-2xl px-4 font-mono text-sm outline-none">
+                      <option value="hombre">Hombre (M)</option>
+                      <option value="mujer">Mujer (W)</option>
+                      <option value="junior">Junior (GS)</option>
+                      <option value="unisex">Unisex</option>
+                   </select>
+                </div>
              </div>
 
              <div className="p-8 grid grid-cols-2 gap-3 border-t border-white/5 bg-white/[0.01]">
                 <button onClick={() => setSelectedProduct(null)} className="h-14 bg-white/5 text-white/40 font-mono font-bold text-xs rounded-2xl hover:bg-white/10 transition-all uppercase">Cerrar</button>
                 <button 
                   onClick={async () => {
-                     setLoading(true);
-                     try {
-                        await productService.update(selectedProduct.id, { 
-                           ...modalData,
-                           es_serializado: modalProductType,
-                           stock_disponible: modalStockQty
-                        });
-                        showNotification('success', '¡Stock actualizado!');
-                        productService.getAll().then(setAllProducts);
-                        setSelectedProduct(null);
-                     } catch (err) { showNotification('error', 'Error al guardar'); } finally { setLoading(false); }
-                  }} 
-                  className="h-14 bg-goat-red text-white font-hype font-black rounded-2xl shadow-xl shadow-goat-red/20 transition-all uppercase italic"
-                >
-                  Guardar Cambios
-                </button>
+                      setLoading(true);
+                      try {
+                         if (selectedProduct.isNew) {
+                            await productService.create(modalData);
+                            showNotification('success', '¡Producto añadido a Stock!');
+                         } else {
+                             await productService.update(selectedProduct.id, { 
+                                ...modalData,
+                                es_serializado: modalProductType,
+                                stock_disponible: modalStockQty
+                             });
+                             showNotification('success', '¡Stock actualizado!');
+                          }
+                          productService.getAll().then(setAllProducts);
+                          setSelectedProduct(null);
+                       } catch (err) { 
+                          const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Error al guardar';
+                          showNotification('error', msg); 
+                       } finally { setLoading(false); }
+                    }} 
+                    className="h-14 bg-goat-red text-white font-hype font-black rounded-2xl shadow-xl shadow-goat-red/20 transition-all uppercase italic"
+                  >
+                    {selectedProduct.isNew ? 'Crear Producto' : 'Guardar Cambios'}
+                  </button>
              </div>
           </div>
        </div>

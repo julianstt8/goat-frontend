@@ -31,6 +31,7 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
   const [isAddingAddress, setIsAddingAddress] = useState(false);
 
   // Sync internal tab state with external prop changes (e.g. from Header menu)
@@ -155,11 +156,25 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                       <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
-                          <Footprints size={20} className="text-goat-blue mb-3" />
-                          <div className="text-[9px] uppercase font-mono text-white/30 font-bold tracking-widest mb-1">Calzado US</div>
-                          <div className="text-xl font-black italic text-white">{profile.talla_calzado_us || '—'}</div>
-                       </div>
+                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+                           <Footprints size={20} className="text-goat-blue mb-3" />
+                           <div className="text-[9px] uppercase font-mono text-white/30 font-bold tracking-widest mb-1">Calzado US</div>
+                           <div className="text-xl font-black italic text-white flex items-baseline gap-1.5">
+                               {profile.genero === 'unisex' && (profile.talla_calzado_us || '').includes('/') ? (
+                                  (() => {
+                                     const parts = profile.talla_calzado_us.split('/');
+                                     return `${(parts[0] || '').trim()}M / ${(parts[1] || '').trim()}W`;
+                                  })()
+                               ) : (
+                                  profile.talla_calzado_us || '—'
+                               )}
+                               <span className="text-[10px] text-white/30 not-italic font-mono uppercase">
+                                  {profile.genero === 'hombre' ? 'M' : 
+                                   profile.genero === 'mujer' ? 'W' : 
+                                   profile.genero === 'junior' ? 'GS' : 'UNISEX'}
+                               </span>
+                           </div>
+                        </div>
                        <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
                           <Shirt size={20} className="text-goat-red mb-3" />
                           <div className="text-[9px] uppercase font-mono text-white/30 font-bold tracking-widest mb-1">Ropa (Talla)</div>
@@ -169,7 +184,16 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                  </div>
 
                  <button 
-                   onClick={() => setIsEditing(true)}
+                   onClick={() => {
+                     setEditFormData({
+                        nombre_completo: profile.nombre_completo,
+                        telefono: profile.telefono,
+                        talla_calzado_us: profile.talla_calzado_us,
+                        genero: profile.genero,
+                        talla_ropa: profile.talla_ropa
+                     });
+                     setIsEditing(true);
+                   }}
                    className="mt-8 w-full h-14 bg-white/5 hover:bg-white text-white hover:text-black border border-white/10 rounded-2xl font-mono text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                  >
                    <Settings size={14} /> Editar Perfil
@@ -418,31 +442,67 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
               
               <form onSubmit={async (e) => {
                  e.preventDefault();
-                 const formData = new FormData(e.target);
-                 const data = Object.fromEntries(formData);
                  try {
-                    await profileService.updateMe(data);
-                    setProfile(prev => ({ ...prev, ...data }));
+                    await profileService.updateMe(editFormData);
+                    setProfile(prev => ({ ...prev, ...editFormData }));
                     setIsEditing(false);
                  } catch (err) { console.error(err); }
               }} className="space-y-4">
                  <div>
                     <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Nombre Completo</label>
-                    <input name="nombre_completo" defaultValue={profile.nombre_completo} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" />
+                    <input 
+                       name="nombre_completo" 
+                       value={editFormData.nombre_completo || ''} 
+                       onChange={(e) => setEditFormData({ ...editFormData, nombre_completo: e.target.value })}
+                       className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" 
+                    />
                  </div>
                  <div>
                     <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">WhatsApp / Celular</label>
-                    <input name="telefono" defaultValue={profile.telefono} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" />
+                    <input 
+                       name="telefono" 
+                       value={editFormData.telefono || ''} 
+                       onChange={(e) => setEditFormData({ ...editFormData, telefono: e.target.value })}
+                       className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" 
+                    />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Talla US (Zapato)</label>
-                        <input name="talla_calzado_us" defaultValue={profile.talla_calzado_us} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" />
+                        <input 
+                           name="talla_calzado_us" 
+                           value={editFormData.talla_calzado_us || ''} 
+                           onChange={(e) => {
+                              const val = e.target.value;
+                              const newGen = val.includes('/') ? 'unisex' : editFormData.genero;
+                              setEditFormData({ ...editFormData, talla_calzado_us: val, genero: newGen });
+                           }}
+                           className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" 
+                        />
                     </div>
                     <div>
-                        <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Talla Ropa</label>
-                        <input name="talla_ropa" defaultValue={profile.talla_ropa} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" />
+                        <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Género (Sizing)</label>
+                        <select 
+                           name="genero" 
+                           value={editFormData.genero || 'unisex'} 
+                           onChange={(e) => setEditFormData({ ...editFormData, genero: e.target.value })}
+                           className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                           <option value="hombre" className="bg-goat-card">Hombre (M)</option>
+                           <option value="mujer" className="bg-goat-card">Mujer (W)</option>
+                           <option value="junior" className="bg-goat-card">Junior (GS)</option>
+                           <option value="unisex" className="bg-goat-card">Unisex</option>
+                        </select>
                     </div>
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Talla Ropa</label>
+                    <input 
+                       name="talla_ropa" 
+                       value={editFormData.talla_ropa || ''} 
+                       onChange={(e) => setEditFormData({ ...editFormData, talla_ropa: e.target.value })}
+                       className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" 
+                    />
                  </div>
 
                  <div className="pt-4 flex gap-3">
