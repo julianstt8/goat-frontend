@@ -107,7 +107,7 @@ function App() {
           }
         }
 
-        setProducts(productsWithPrice.filter(p => !p.vendido));
+        setProducts(productsWithPrice.filter(p => p.en_stock && !p.vendido));
         setLoading(false);
       } catch (err) {
         console.error('Data Init Error:', err);

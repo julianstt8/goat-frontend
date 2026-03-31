@@ -56,8 +56,8 @@ const AdminDashboard = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('referencia');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortField, setSortField] = useState('fecha_compra');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [inventoryFilter, setInventoryFilter] = useState('all');
   const [inventoryView, setInventoryView] = useState('grid');
   const [currentPage, setCurrentPage] = useState(1);
@@ -287,8 +287,9 @@ const AdminDashboard = () => {
           (item.cliente?.nombre_completo || '').toLowerCase().includes(searchStr);
        
        if (activeTab === 'inventory') {
-          if (inventoryFilter === 'available') return matchesSearch && !item.vendido;
-          if (inventoryFilter === 'sold') return matchesSearch && item.vendido;
+          if (inventoryFilter === 'available') return matchesSearch && item.en_stock && !item.vendido;
+          if (inventoryFilter === 'sold') return matchesSearch && item.en_stock && item.vendido;
+          return matchesSearch && item.en_stock;
        }
        return matchesSearch;
     });
@@ -548,14 +549,14 @@ const AdminDashboard = () => {
                         <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white/40"><Package size={24} /></div>
                         <div>
                            <div className="text-[10px] uppercase font-mono text-white/30 font-black italic tracking-widest mb-1">Disponibles</div>
-                           <div className="text-xl font-hype font-black text-white italic">{allProducts.filter(p => !p.vendido).length} Unid.</div>
+                           <div className="text-xl font-hype font-black text-white italic">{allProducts.filter(p => !p.vendido && p.en_stock).length} Unid.</div>
                         </div>
                      </div>
                      <div className="bg-goat-card border border-white/5 rounded-[32px] p-6 flex items-center gap-5">
                         <div className="w-14 h-14 bg-goat-red/10 rounded-2xl flex items-center justify-center text-goat-red"><RefreshCw size={24} /></div>
                         <div>
                            <div className="text-[10px] uppercase font-mono text-white/30 font-black italic tracking-widest mb-1">Entregados</div>
-                           <div className="text-xl font-hype font-black text-white italic">{allProducts.filter(p => p.vendido).length} Unid.</div>
+                           <div className="text-xl font-hype font-black text-white italic">{allProducts.filter(p => p.vendido && p.en_stock).length} Unid.</div>
                         </div>
                      </div>
                   </div>
