@@ -6,7 +6,7 @@ import LoginView from './components/LoginView';
 import AdminDashboard from './components/AdminDashboard';
 import UserProfile from './components/UserProfile';
 import ConfirmationModal from './components/ConfirmationModal';
-import { productService, categoryService, calculationService, authService } from './services/api';
+import { productService, categoryService, calculationService, authService, profileService } from './services/api';
 import { useCart } from './hooks/useCart';
 import { 
   ShoppingBag, 
@@ -18,7 +18,8 @@ import {
   Package,
   Info,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 
 /**
@@ -36,6 +37,9 @@ function App() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState(null); // { title, message, type, onConfirm }
+  const [wishlist, setWishlist] = useState([]);
+  const [profileTab, setProfileTab] = useState('summary');
   
   const { 
     cartItems, 
@@ -119,6 +123,40 @@ function App() {
     initData();
   }, []);
 
+  // Wishlist Sync
+  useEffect(() => {
+    if (user && !['super_admin', 'vendedor'].includes(user.rol)) {
+       profileService.getWishlist().then(setWishlist).catch(console.error);
+    } else {
+       setWishlist([]);
+    }
+  }, [user]);
+
+  const handleToggleWishlist = async (referencia) => {
+    if (!user) {
+      setView('login');
+      return;
+    }
+    try {
+      const exists = wishlist.find(item => item.referencia === referencia);
+      if (exists) {
+        await profileService.removeFromWishlist(exists.id);
+        setWishlist(prev => prev.filter(item => item.referencia !== referencia));
+      } else {
+        const newItem = await profileService.addToWishlist(referencia);
+        setWishlist(prev => [...prev, newItem]);
+      }
+    } catch (err) {
+      console.error('Error toggling wishlist:', err);
+    }
+  };
+
+  const handleTabClick = (tabId, viewId = 'orders') => {
+    setProfileTab(tabId);
+    setView(viewId);
+    window.scrollTo(0,0);
+  };
+
   const handleLogin = async (credentials) => {
     try {
       const res = await authService.login(credentials);
@@ -130,7 +168,12 @@ function App() {
         setView('catalog');
       }
     } catch (err) {
-      alert('Error de autenticación: Verifica tus credenciales');
+      setAlertConfig({
+        title: "Acceso Denegado",
+        message: "Las credenciales ingresadas no son válidas. Por favor, verifica tu email y contraseña.",
+        type: "danger",
+        confirmText: "Reintentar"
+      });
     }
   };
 
@@ -168,11 +211,6 @@ function App() {
     );
   }
 
-  // --- RENDERING VIEW: LOGIN ---
-  if (view === 'login') {
-    return <LoginView onLogin={handleLogin} onBack={() => setView('catalog')} />;
-  }
-
   const handleLogout = () => {
     setIsLogoutModalOpen(true);
   };
@@ -208,7 +246,7 @@ function App() {
             </button>
          ) : user ? (
             <button 
-              onClick={() => setView('orders')}
+              onClick={() => handleTabClick('orders', 'orders')}
               className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'orders' ? 'text-goat-red' : 'text-white/30'}`}
             >
               <Package size={22} strokeWidth={view === 'orders' ? 2.5 : 2} />
@@ -219,92 +257,106 @@ function App() {
     </nav>
    );
 
-  return (
-    <div className="min-h-screen bg-goat-black text-white font-hype pb-32">
-      <Header 
-        cartCount={cartItems.length} 
-        onCartClick={() => setIsCartOpen(true)} 
-        onUserClick={() => user ? (isAdmin ? setView('dashboard') : setView('orders')) : setView('login')} 
-        user={user}
-        onLogout={handleLogout}
-      />
+  // --- RENDERING VIEWS ---
+  const renderContent = () => {
+    if (view === 'login') {
+       return <LoginView onLogin={handleLogin} onBack={() => setView('catalog')} />;
+    }
 
-      <main className="container mx-auto px-4 max-w-5xl pt-4">
-        {view === 'dashboard' && isAdmin ? (
-          <div className="animate-fade-in"><AdminDashboard /></div>
-        ) : view === 'orders' && user ? (
-          <div className="animate-fade-in"><UserProfile user={user} /></div>
-        ) : (
-          <div className="animate-fade-in">
-            {/* Header Stats */}
-            <section className="py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
-                <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-white">
-                  STOCK <span className="text-goat-red">ACTUAL</span>
-                </h1>
-                <p className="text-white/40 font-mono text-xs uppercase tracking-[0.2em] mt-3 flex items-center gap-2 font-bold">
-                  <Info size={14} className="text-goat-blue" /> Envíos locales: 1-3 días | Encargos: 15 días
-                </p>
-              </div>
-              
-            </section>
-
-            {/* Categories Bar */}
-            <section className="sticky top-16 z-30 -mx-4 px-4 bg-goat-black/80 backdrop-blur-md py-4 mb-8 border-b border-white/5">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                <button 
-                  onClick={() => setActiveCategory(null)}
-                  className={`px-6 h-11 rounded-xl text-xs font-bold font-mono transition-all border shrink-0 ${
-                    !activeCategory ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'bg-white/5 border-white/5 text-white/50 hover:text-white'
-                  }`}
-                >
-                  TODO EL STOCK
-                </button>
-                {categories.map(cat => (
+    return (
+       <>
+        <Header 
+          cartCount={cartItems.length} 
+          onCartClick={() => setIsCartOpen(true)} 
+          onUserClick={() => user ? handleTabClick('summary', 'orders') : setView('login')} 
+          user={user}
+          onLogout={handleLogout}
+          onTabClick={handleTabClick}
+        />
+  
+        <main className="container mx-auto px-4 max-w-5xl pt-4">
+          {view === 'dashboard' && isAdmin ? (
+            <div className="animate-fade-in"><AdminDashboard /></div>
+          ) : view === 'orders' && user ? (
+            <div className="animate-fade-in"><UserProfile user={user} onViewCatalog={() => setView('catalog')} initialTab={profileTab} onTabChange={handleTabClick} /></div>
+          ) : (
+            <div className="animate-fade-in">
+              {/* Header Stats */}
+              <section className="py-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-white">
+                    STOCK <span className="text-goat-red">ACTUAL</span>
+                  </h1>
+                  <p className="text-white/40 font-mono text-xs uppercase tracking-[0.2em] mt-3 flex items-center gap-2 font-bold">
+                    <Info size={14} className="text-goat-blue" /> Envíos locales: 1-3 días | Encargos: 15 días
+                  </p>
+                </div>
+              </section>
+  
+              {/* Categories Bar */}
+              <section className="sticky top-16 z-30 -mx-4 px-4 bg-goat-black/80 backdrop-blur-md py-4 mb-8 border-b border-white/5">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
                   <button 
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => setActiveCategory(null)}
                     className={`px-6 h-11 rounded-xl text-xs font-bold font-mono transition-all border shrink-0 ${
-                      activeCategory === cat.id ? 'bg-goat-red border-goat-red text-white' : 'bg-white/5 border-white/5 text-white/50 hover:text-white'
+                      !activeCategory ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'bg-white/5 border-white/5 text-white/50 hover:text-white'
                     }`}
                   >
-                    {cat.nombre.toUpperCase()}
+                    TODO EL STOCK
                   </button>
+                  {categories.map(cat => (
+                    <button 
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={`px-6 h-11 rounded-xl text-xs font-bold font-mono transition-all border shrink-0 ${
+                        activeCategory === cat.id ? 'bg-goat-red border-goat-red text-white' : 'bg-white/5 border-white/5 text-white/50 hover:text-white'
+                      }`}
+                    >
+                      {cat.nombre.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </section>
+  
+              {/* Products Grid */}
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+                {groupedProducts.map(product => (
+                  <ProductCard 
+                    key={product.referencia} 
+                    product={product} 
+                    trm={trm} 
+                    onAddToCart={(variant) => {
+                      addToCart(variant || product);
+                      setIsCartOpen(true);
+                    }}
+                    onAddToWishlist={handleToggleWishlist}
+                    isFavorited={wishlist.some(w => w.referencia === product.referencia)}
+                  />
                 ))}
-              </div>
-            </section>
+              </section>
+            </div>
+          )}
+        </main>
+  
+        <NavigationUI />
+  
+        <CartDrawer 
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cartItems={cartItems}
+          onUpdateQuantity={updateQuantity}
+          onRemove={removeFromCart}
+          totals={totals}
+          trm={trm}
+        />
+       </>
+    );
+  };
 
-            {/* Products Grid */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-              {groupedProducts.map(product => (
-                <ProductCard 
-                  key={product.referencia} 
-                  product={product} 
-                  trm={trm} 
-                  onAddToCart={(variant) => {
-                    // Si viene un variant (id específico), lo usamos. 
-                    // Si no, usamos el producto base (para compatibilidad)
-                    addToCart(variant || product);
-                    setIsCartOpen(true);
-                  }} 
-                />
-              ))}
-            </section>
-          </div>
-        )}
-      </main>
+  return (
+    <div className="min-h-screen bg-goat-black text-white font-hype pb-32">
+      {renderContent()}
 
-      <NavigationUI />
-
-      <CartDrawer 
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={updateQuantity}
-        onRemove={removeFromCart}
-        totals={totals}
-        trm={trm}
-      />
       {isLogoutModalOpen && (
         <ConfirmationModal 
           title="¿Cerrar Sesión?"
@@ -313,6 +365,20 @@ function App() {
           cancelText="No, Volver"
           onConfirm={confirmLogout}
           onCancel={() => setIsLogoutModalOpen(false)}
+          icon={<LogOut size={28} />}
+        />
+      )}
+      {alertConfig && (
+        <ConfirmationModal 
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          confirmText={alertConfig.confirmText || "Entendido"}
+          isAlert={true}
+          onConfirm={() => {
+            if (alertConfig.onConfirm) alertConfig.onConfirm();
+            setAlertConfig(null);
+          }}
         />
       )}
     </div>

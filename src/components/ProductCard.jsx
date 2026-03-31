@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Package, LayoutGrid, ShoppingCart, ChevronDown } from 'lucide-react';
+import { Package, LayoutGrid, ShoppingCart, ChevronDown, Heart } from 'lucide-react';
 
 /**
  * ProductCard Premium con Selector de Tallas (Best Practice)
  * Agrupa variantes del mismo producto para una experiencia de tienda nivel PRO.
  */
-const ProductCard = ({ product, trm, onAddToCart }) => {
+const ProductCard = ({ product, trm, onAddToCart, onAddToWishlist, isFavorited }) => {
   // Manejamos la selección de variante si existen múltiples tallas
   const variants = product.variants || [{ id: product.id, talla: product.talla || 'UNISIZE' }];
   const [selectedVariant, setSelectedVariant] = useState(variants[0]);
@@ -47,6 +47,17 @@ const ProductCard = ({ product, trm, onAddToCart }) => {
             </span>
           )}
         </div>
+
+        {/* Hype Button (Wishlist) */}
+        <button 
+          onClick={(e) => { e.stopPropagation(); onAddToWishlist && onAddToWishlist(product.referencia); }}
+          className={`absolute top-5 right-5 z-20 w-10 h-10 rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center transition-all duration-300 active:scale-90 shadow-xl ${
+            isFavorited ? 'bg-white text-goat-red border-white shadow-goat-red/20' : 'bg-black/40 text-white/40 hover:text-goat-red hover:bg-white'
+          }`}
+          title="Añadir a mis favoritos (Hype)"
+        >
+          <Heart size={20} className={isFavorited ? 'fill-current' : ''} />
+        </button>
 
         {/* Quick Size Toggle (Mobile Friendly) */}
         {variants.length > 1 && (

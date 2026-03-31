@@ -16,12 +16,14 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  Activity
+  Activity,
+  ShoppingBag,
+  Plus
 } from 'lucide-react';
 import { profileService, orderService } from '../services/api';
 
-const UserProfile = ({ user: initialUser }) => {
-  const [activeTab, setActiveTab] = useState('summary'); // summary, orders, wishlist, addresses, payments, support
+const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' }) => {
+  const [activeTab, setActiveTab] = useState(initialTab); // summary, orders, wishlist, addresses, payments, support
   const [profile, setProfile] = useState(initialUser);
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
@@ -29,6 +31,12 @@ const UserProfile = ({ user: initialUser }) => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+
+  // Sync internal tab state with external prop changes (e.g. from Header menu)
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Stats y Datos
   useEffect(() => {
@@ -248,22 +256,38 @@ const UserProfile = ({ user: initialUser }) => {
          )}
 
          {activeTab === 'wishlist' && (
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-fade-in-up text-center">
-              {wishlist.length === 0 ? (
-                <div className="col-span-full py-20 text-white/20 font-mono uppercase text-[10px] tracking-widest">No tienes favoritos guardados</div>
-              ) : wishlist.map(item => (
-                <div key={item.id} className="bg-goat-card border border-white/5 rounded-[40px] p-6 group hover:border-goat-red/30 transition-all relative overflow-hidden">
-                   <div className="absolute top-4 right-4 text-goat-red"><Heart size={16} fill="currentColor" /></div>
-                   <div className="bg-white/5 aspect-square rounded-[32px] mb-4 flex items-center justify-center text-white/10">
-                      <ShoppingBag size={48} />
-                   </div>
-                   <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1">Referencia</div>
-                   <div className="text-xs font-black italic text-white uppercase leading-tight">{item.referencia}</div>
-                   <button className="mt-4 w-full h-10 border border-white/5 rounded-xl font-mono text-[8px] font-black uppercase text-white/30 hover:bg-white hover:text-black hover:border-white transition-all">Ver en catálogo</button>
-                </div>
-              ))}
-           </div>
-         )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 animate-fade-in-up text-center">
+               {wishlist.length === 0 ? (
+                 <div className="col-span-full py-20 text-white/20 font-mono uppercase text-[10px] tracking-widest">No tienes favoritos guardados</div>
+               ) : wishlist.map(item => (
+                 <div key={item.id} className="bg-goat-card border border-white/5 rounded-[40px] p-6 group hover:border-goat-red/30 transition-all relative overflow-hidden">
+                    <button 
+                      onClick={async () => {
+                         try {
+                           await profileService.removeFromWishlist(item.id);
+                           setWishlist(prev => prev.filter(i => i.id !== item.id));
+                         } catch (err) { console.error(err); }
+                      }}
+                      className="absolute top-4 right-4 text-goat-red/30 hover:text-goat-red transition-all"
+                      title="Quitar de favoritos"
+                    >
+                      <Heart size={16} fill="currentColor" />
+                    </button>
+                    <div className="bg-white/5 aspect-square rounded-[32px] mb-4 flex items-center justify-center text-white/10 group-hover:scale-110 transition-transform duration-500">
+                       <ShoppingBag size={48} />
+                    </div>
+                    <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-1 font-bold">Referencia</div>
+                    <div className="text-xs font-black italic text-white uppercase leading-tight line-clamp-1 h-4">{item.referencia}</div>
+                    <button 
+                      onClick={onViewCatalog}
+                      className="mt-6 w-full h-11 border border-white/5 rounded-2xl font-mono text-[9px] font-black uppercase text-white/30 hover:bg-white hover:text-black hover:border-white transition-all shadow-xl shadow-black/20"
+                    >
+                      Ver en catálogo
+                    </button>
+                 </div>
+               ))}
+            </div>
+          )}
 
          {activeTab === 'addresses' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
@@ -277,6 +301,11 @@ const UserProfile = ({ user: initialUser }) => {
                     <MapPin size={24} className={addr.es_principal ? 'text-goat-blue' : 'text-white/20'} />
                     <div className="mt-6 mb-2 text-xl font-black italic text-white uppercase">{addr.ciudad}</div>
                     <p className="text-white/40 font-mono text-xs uppercase tracking-tight leading-relaxed line-clamp-2">{addr.direccion_completa}</p>
+                    {addr.indicaciones && (
+                      <p className="mt-2 text-[10px] font-mono text-white/20 uppercase tracking-widest italic flex items-center gap-2">
+                        <Info size={10} className="text-white/10" /> {addr.indicaciones}
+                      </p>
+                    )}
                     <div className="mt-8 flex gap-3">
                        <button className="text-[9px] font-black uppercase font-mono text-white/30 hover:text-white transition-colors">Editar</button>
                        <button 
@@ -288,10 +317,13 @@ const UserProfile = ({ user: initialUser }) => {
                     </div>
                  </div>
                ))}
-               <button className="bg-white/5 border border-white/5 border-dashed rounded-[40px] p-10 flex flex-col items-center justify-center text-center opacity-40 hover:opacity-100 transition-all min-h-[220px]">
-                  <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mb-4"><ChevronRight className="rotate-[270deg]" size={20} /></div>
-                  <div className="text-[10px] font-black uppercase font-mono tracking-widest">Nueva Dirección</div>
-               </button>
+                <button 
+                  onClick={() => setIsAddingAddress(true)}
+                  className="bg-white/5 border border-white/5 border-dashed rounded-[40px] p-10 flex flex-col items-center justify-center text-center opacity-40 hover:opacity-100 transition-all min-h-[220px]"
+                >
+                   <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mb-4"><Plus size={20} /></div>
+                   <div className="text-[10px] font-black uppercase font-mono tracking-widest">Nueva Dirección</div>
+                </button>
             </div>
          )}
 
@@ -318,7 +350,7 @@ const UserProfile = ({ user: initialUser }) => {
                             <td className="px-8 py-4">
                                <div className="flex flex-col">
                                   <span className="font-bold text-white uppercase">{pay.tipo_abono}</span>
-                                  <span className="text-[8px] text-white/20">Ref: {pay.pedido?.referencia}</span>
+                                  <span className="text-[8px] text-white/20">Ref: {pay.pedido?.producto?.referencia}</span>
                                </div>
                             </td>
                             <td className="px-8 py-4 text-right font-black italic text-green-500">$ {new Intl.NumberFormat('es-CO').format(pay.monto_cop)}</td>
@@ -376,6 +408,90 @@ const UserProfile = ({ user: initialUser }) => {
             </div>
          )}
       </div>
+
+      {/* EDIT PROFILE MODAL */}
+      {isEditing && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsEditing(false)} />
+           <div className="relative bg-goat-card border border-white/10 rounded-[40px] w-full max-w-md p-8 animate-fade-in-up border-b-4 border-b-goat-red shadow-2xl">
+              <h3 className="text-2xl font-black italic text-white uppercase mb-6">Ajustes de Perfil</h3>
+              
+              <form onSubmit={async (e) => {
+                 e.preventDefault();
+                 const formData = new FormData(e.target);
+                 const data = Object.fromEntries(formData);
+                 try {
+                    await profileService.updateMe(data);
+                    setProfile(prev => ({ ...prev, ...data }));
+                    setIsEditing(false);
+                 } catch (err) { console.error(err); }
+              }} className="space-y-4">
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Nombre Completo</label>
+                    <input name="nombre_completo" defaultValue={profile.nombre_completo} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">WhatsApp / Celular</label>
+                    <input name="telefono" defaultValue={profile.telefono} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Talla US (Zapato)</label>
+                        <input name="talla_calzado_us" defaultValue={profile.talla_calzado_us} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Talla Ropa</label>
+                        <input name="talla_ropa" defaultValue={profile.talla_ropa} className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" />
+                    </div>
+                 </div>
+
+                 <div className="pt-4 flex gap-3">
+                    <button type="button" onClick={() => setIsEditing(false)} className="flex-1 h-14 rounded-2xl bg-white/5 text-white/40 font-mono text-[10px] font-black uppercase hover:bg-white/10 transition-all">Cancelar</button>
+                    <button type="submit" className="flex-[2] h-14 rounded-2xl bg-goat-red text-white font-hype font-black uppercase text-xs shadow-xl shadow-goat-red/20 active:scale-95 transition-all">Guardar Cambios</button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {/* ADD ADDRESS MODAL */}
+      {isAddingAddress && (
+        <div className="fixed inset-0 z-[101] flex items-center justify-center px-4">
+           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsAddingAddress(false)} />
+           <div className="relative bg-goat-card border border-white/10 rounded-[40px] w-full max-w-sm p-8 animate-fade-in-up border-b-4 border-b-goat-blue shadow-2xl">
+              <h3 className="text-2xl font-black italic text-white uppercase mb-6">Nueva Dirección</h3>
+              
+              <form onSubmit={async (e) => {
+                 e.preventDefault();
+                 const formData = new FormData(e.target);
+                 const data = Object.fromEntries(formData);
+                 try {
+                    const newAddr = await profileService.addAddress(data);
+                    setAddresses(prev => [...prev, newAddr]);
+                    setIsAddingAddress(false);
+                 } catch (err) { console.error(err); }
+              }} className="space-y-4">
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Ciudad</label>
+                    <input name="ciudad" placeholder="Ej: Medellín" required className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all uppercase" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Dirección Detallada</label>
+                    <input name="direccion_completa" placeholder="Cra, Calle, Apto..." required className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all" />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase font-mono text-white/30 font-bold tracking-widest pl-2 mb-2 block">Indicaciones / Barrio</label>
+                    <input name="indicaciones" placeholder="Ej: Edificio X, Portería..." className="w-full h-12 bg-white/5 border border-white/5 rounded-2xl px-4 text-white font-mono text-xs focus:border-goat-blue/50 outline-none transition-all font-mono" />
+                 </div>
+
+                 <div className="pt-4 flex gap-3">
+                    <button type="button" onClick={() => setIsAddingAddress(false)} className="flex-1 h-14 rounded-2xl bg-white/5 text-white/40 font-mono text-[10px] font-black uppercase hover:bg-white/10 transition-all">Cancelar</button>
+                    <button type="submit" className="flex-[2] h-14 rounded-2xl bg-goat-blue text-white font-hype font-black uppercase text-xs shadow-xl shadow-goat-blue/20 active:scale-95 transition-all">Añadir Dirección</button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

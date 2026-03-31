@@ -36,6 +36,7 @@ const LoginView = ({ onLogin, onBack }) => {
                 type="email" 
                 placeholder="Email"
                 value={email}
+                autocomplete="username"
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-14 bg-goat-card border border-white/5 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-goat-blue/50 transition-all font-mono text-sm"
               />
@@ -47,6 +48,7 @@ const LoginView = ({ onLogin, onBack }) => {
                 type="password" 
                 placeholder="Password"
                 value={password}
+                autocomplete="current-password"
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-14 bg-goat-card border border-white/5 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-goat-blue/50 transition-all font-mono text-sm"
               />
