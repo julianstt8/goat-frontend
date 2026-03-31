@@ -234,7 +234,7 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                        </div>
                        <div>
                           <div className="text-[10px] font-black uppercase font-mono text-white/20">Último Pedido</div>
-                          <div className="text-sm font-black italic text-white uppercase">{orders[0]?.referencia || 'Sin pedidos'}</div>
+                          <div className="text-sm font-black italic text-white uppercase">{orders[0]?.producto?.referencia || orders[0]?.referencia || 'Sin pedidos'}</div>
                        </div>
                     </div>
                     <ChevronRight size={20} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -269,7 +269,7 @@ const UserProfile = ({ user: initialUser, onViewCatalog, initialTab = 'summary' 
                           }`}>
                             {order.estado_logistico || 'pendiente'}
                           </span>
-                          <h4 className="text-xl font-black italic text-white uppercase mt-4">{order.referencia}</h4>
+                          <h4 className="text-xl font-black italic text-white uppercase mt-4">{order.producto?.referencia || order.referencia}</h4>
                           <p className="text-white/20 font-mono text-[9px] uppercase tracking-widest mt-1 italic">Colección personal</p>
                        </div>
                        <div className="text-right">
