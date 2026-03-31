@@ -95,6 +95,45 @@ export const paymentService = {
   }
 };
 
+export const profileService = {
+  getMe: async () => {
+    const response = await api.get('/profile/me');
+    return response.data;
+  },
+  updateMe: async (data) => {
+    const response = await api.patch('/profile/me', data);
+    return response.data;
+  },
+  getAddresses: async () => {
+    const response = await api.get('/profile/addresses');
+    return response.data;
+  },
+  addAddress: async (data) => {
+    const response = await api.post('/profile/addresses', data);
+    return response.data;
+  },
+  deleteAddress: async (id) => {
+    const response = await api.delete(`/profile/addresses/${id}`);
+    return response.data;
+  },
+  getWishlist: async () => {
+    const response = await api.get('/profile/wishlist');
+    return response.data;
+  },
+  addToWishlist: async (referencia) => {
+    const response = await api.post('/profile/wishlist', { referencia });
+    return response.data;
+  },
+  removeFromWishlist: async (id) => {
+    const response = await api.delete(`/profile/wishlist/${id}`);
+    return response.data;
+  },
+  getPayments: async () => {
+    const response = await api.get('/profile/payments');
+    return response.data;
+  }
+};
+
 export const authService = {
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);

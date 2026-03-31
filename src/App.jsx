@@ -4,7 +4,8 @@ import ProductCard from './components/ProductCard';
 import CartDrawer from './components/CartDrawer';
 import LoginView from './components/LoginView';
 import AdminDashboard from './components/AdminDashboard';
-import UserOrders from './components/UserOrders';
+import UserProfile from './components/UserProfile';
+import ConfirmationModal from './components/ConfirmationModal';
 import { productService, categoryService, calculationService, authService } from './services/api';
 import { useCart } from './hooks/useCart';
 import { 
@@ -34,6 +35,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   
   const { 
     cartItems, 
@@ -172,9 +174,14 @@ function App() {
   }
 
   const handleLogout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
     authService.logout();
     setUser(null);
     setView('catalog');
+    setIsLogoutModalOpen(false);
   };
 
   const isAdmin = user && ['super_admin', 'vendedor'].includes(user.rol);
@@ -226,7 +233,7 @@ function App() {
         {view === 'dashboard' && isAdmin ? (
           <div className="animate-fade-in"><AdminDashboard /></div>
         ) : view === 'orders' && user ? (
-          <div className="animate-fade-in"><UserOrders user={user} /></div>
+          <div className="animate-fade-in"><UserProfile user={user} /></div>
         ) : (
           <div className="animate-fade-in">
             {/* Header Stats */}
@@ -298,6 +305,16 @@ function App() {
         totals={totals}
         trm={trm}
       />
+      {isLogoutModalOpen && (
+        <ConfirmationModal 
+          title="¿Cerrar Sesión?"
+          message="¿Estás seguro de que deseas salir de tu cuenta de GOAT?"
+          confirmText="Sí, Salir"
+          cancelText="No, Volver"
+          onConfirm={confirmLogout}
+          onCancel={() => setIsLogoutModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
