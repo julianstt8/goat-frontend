@@ -125,7 +125,7 @@ function App() {
       if (['super_admin', 'vendedor'].includes(userData.rol)) {
         setView('dashboard');
       } else {
-        setView('orders');
+        setView('catalog');
       }
     } catch (err) {
       alert('Error de autenticación: Verifica tus credenciales');
@@ -180,7 +180,7 @@ function App() {
   const isAdmin = user && ['super_admin', 'vendedor'].includes(user.rol);
 
   // --- RENDERING COMMON ELEMENTS ---
-  const NavigationUI = () => (
+   const NavigationUI = () => (
     <nav className="fixed bottom-0 inset-x-0 h-20 bg-goat-card/80 backdrop-blur-xl border-t border-white/10 z-[60] safe-area-inset-bottom">
       <div className="container mx-auto px-6 h-full flex items-center justify-around max-w-lg">
          <button 
@@ -192,56 +192,25 @@ function App() {
          </button>
 
          {isAdmin ? (
-           <button 
-             onClick={() => setView('dashboard')}
-             className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'dashboard' ? 'text-goat-red' : 'text-white/30'}`}
-           >
-             <ShieldCheck size={22} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
-             <span className="text-[10px] font-bold font-mono uppercase italic">Admin</span>
-           </button>
+            <button 
+              onClick={() => setView('dashboard')}
+              className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'dashboard' ? 'text-goat-red' : 'text-white/30'}`}
+            >
+              <ShieldCheck size={22} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
+              <span className="text-[10px] font-bold font-mono uppercase italic tracking-tighter">Admin</span>
+            </button>
          ) : user ? (
-           <button 
-             onClick={() => setView('orders')}
-             className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'orders' ? 'text-goat-red' : 'text-white/30'}`}
-           >
-             <Package size={22} strokeWidth={view === 'orders' ? 2.5 : 2} />
-             <span className="text-[10px] font-bold font-mono uppercase tracking-tighter">Pedidos</span>
-           </button>
+            <button 
+              onClick={() => setView('orders')}
+              className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'orders' ? 'text-goat-red' : 'text-white/30'}`}
+            >
+              <Package size={22} strokeWidth={view === 'orders' ? 2.5 : 2} />
+              <span className="text-[10px] font-bold font-mono uppercase tracking-tighter">Pedidos</span>
+            </button>
          ) : null}
-
-         {!user ? (
-            <button 
-              onClick={() => setView('login')}
-              className={`flex flex-col items-center gap-1.5 transition-colors ${view === 'login' ? 'text-goat-red' : 'text-white/30'}`}
-            >
-              <UserIcon size={22} />
-              <span className="text-[10px] font-bold font-mono uppercase">Acceso</span>
-            </button>
-         ) : (
-            <button 
-              onClick={handleLogout}
-              className="flex flex-col items-center gap-1.5 text-white/10 hover:text-goat-red transition-colors"
-            >
-              <ArrowRight className="rotate-180" size={22} />
-              <span className="text-[10px] font-bold font-mono uppercase">Salir</span>
-            </button>
-         )}
-
-         <button 
-           onClick={() => setIsCartOpen(true)}
-           className="relative flex flex-col items-center gap-1.5 text-white/30 hover:text-white transition-colors"
-         >
-           <ShoppingCart size={22} />
-           {cartItems.length > 0 && (
-             <span className="absolute -top-1 -right-1.5 bg-goat-blue text-white text-[9px] font-black h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-goat-black shadow-lg shadow-goat-blue/20">
-               {cartItems.length}
-             </span>
-           )}
-           <span className="text-[10px] font-bold font-mono uppercase tracking-tighter">Carrito</span>
-         </button>
       </div>
     </nav>
-  );
+   );
 
   return (
     <div className="min-h-screen bg-goat-black text-white font-hype pb-32">
@@ -249,6 +218,8 @@ function App() {
         cartCount={cartItems.length} 
         onCartClick={() => setIsCartOpen(true)} 
         onUserClick={() => user ? (isAdmin ? setView('dashboard') : setView('orders')) : setView('login')} 
+        user={user}
+        onLogout={handleLogout}
       />
 
       <main className="container mx-auto px-4 max-w-5xl pt-4">

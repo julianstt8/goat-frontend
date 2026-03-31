@@ -1,7 +1,7 @@
 import React from 'react';
-import { ShoppingBag, Search, User } from 'lucide-react';
+import { ShoppingBag, Search, User, LogOut } from 'lucide-react';
 
-const Header = ({ cartCount, onCartClick, onUserClick }) => {
+const Header = ({ cartCount, onCartClick, onUserClick, user, onLogout }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-goat-black/80 backdrop-blur-md border-b border-white/5">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -38,6 +38,16 @@ const Header = ({ cartCount, onCartClick, onUserClick }) => {
           >
             <User size={20} />
           </button>
+
+          {user && (
+            <button 
+              onClick={onLogout}
+              className="p-2 text-white/30 hover:text-goat-red transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut size={20} />
+            </button>
+          )}
         </div>
       </div>
     </header>
